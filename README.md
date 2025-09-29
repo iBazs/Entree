@@ -163,13 +163,13 @@
 
 ## 💬 Honest Talk
 
-We built Entree because we were tired of:
+Created Entree because getting tired of:
 - Searching for files manually across massive directory trees
 - Wondering "what changed?" between system snapshots
 - Paying for cloud-based audit tools that expose our data
 - Clunky automation that breaks with every update
 
-**Entree is different.** It's the tool we wish existed when managing enterprise file systems, conducting security audits, and ensuring compliance. Fast, local, and yours.
+**Entree is different.** It's the tool we wish existed when managing enterprise file systems, conducting security audits, and helping be in compliance. Fast, local, and yours.
 
 ---
 
