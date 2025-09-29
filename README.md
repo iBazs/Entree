@@ -4,7 +4,7 @@
 
 [![Open Source](https://img.shields.io/badge/Open%20Source-💚-success)](https://github.com) [![Fast](https://img.shields.io/badge/Performance-⚡%20Fast-blue)](https://github.com) [![Secure](https://img.shields.io/badge/Security-🔒%20Local%20First-orange)](https://github.com)
 
----
+
 
 ## ✨ Why Entree?
 
@@ -13,7 +13,10 @@
 **Open Source** • Fully transparent, community-driven, and free forever  
 **Intuitive** • No manual needed—just launch and go!
 
----
+
+
+
+
 
 ## 🔄 The Entree Workflow
 
@@ -21,7 +24,10 @@
 ### 2️⃣ **Compare** → Spot differences between reports from different times
 ### 3️⃣ **Tasks** → Automate the entire process with scheduled checks
 
----
+
+
+
+
 
 ## 🔍 Step 1: Search & Report
 
@@ -50,7 +56,7 @@
 - Groups and members breakdown
 - Access matrix visualization
 
----
+
 
 ## 📊 Step 2: Compare Reports
 
@@ -78,7 +84,7 @@
 - **Moved/renamed** items
 - **Ownership transfers**
 
----
+
 
 ## ⏰ Step 3: Automate with Tasks
 
@@ -111,7 +117,7 @@
 - **Cancel operations** anytime with one click
 - **Historical results** always accessible
 
----
+
 
 ## 🔄 Complete Workflow Example
 
@@ -171,21 +177,13 @@ Created Entree because getting tired of:
 
 **Entree is different.** Fast, local, and yours.
 
----
+
+
+
+
 
 ## 🌟 Join the Journey
 
 ⭐ **Star us on GitHub** if Entree saves you time  
 🐛 **Report issues** to help us improve  
 🔧 **Contribute** and make Entree even better
-
----
-
-## 📋 Quick Reference Card
-
-| Feature | What It Does | When To Use |
-|---------|-------------|-------------|
-| **Search Configuration** | Define custom search parameters | Before running any search |
-| **Searches Overview** | Monitor active/completed searches | To track search status |
-| **Result Comparison** | Diff two reports to find changes | After generating multiple reports |
-| **Scheduled Search** | Automate recurring searches | For regular audits/monitoring |
