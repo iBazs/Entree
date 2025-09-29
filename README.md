@@ -169,7 +169,7 @@ Created Entree because getting tired of:
 - Paying for cloud-based audit tools that expose our data
 - Clunky automation that breaks with every update
 
-**Entree is different.** It's the tool we wish existed when managing enterprise file systems, conducting security audits, and helping be in compliance. Fast, local, and yours.
+**Entree is different.** Fast, local, and yours.
 
 ---
 
