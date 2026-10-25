@@ -16,5 +16,13 @@ internal sealed class FakeTaskSchedulerService : ITaskSchedulerService
 
    public Task<bool> DeleteJobAsync(string taskName) => Task.FromResult(true);
 
+   public bool DeleteAllSucceeds { get; init; } = true;
+
+   public Task<bool> DeleteAllJobsAsync()
+   {
+      if (DeleteAllSucceeds) Jobs.Clear();
+      return Task.FromResult(DeleteAllSucceeds);
+   }
+
    public Task EnsureTaskFolderExistsAsync() => Task.CompletedTask;
 }

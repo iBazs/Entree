@@ -4,6 +4,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using Serilog;
+using Entree.Core.Helpers;
 
 namespace Entree.Services;
 
@@ -30,11 +31,10 @@ internal static class CredentialKey
 
    public static string? StorageDirectory()
    {
-      var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-      if (string.IsNullOrEmpty(localAppData)) return null;
+      if (string.IsNullOrEmpty(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))) return null;
       try
       {
-         return Directory.CreateDirectory(Path.Combine(localAppData, "Entree", "cache")).FullName;
+         return Directory.CreateDirectory(Path.Combine(PathHelper.DataDirectory, "cache")).FullName;
       }
       catch (Exception ex)
       {

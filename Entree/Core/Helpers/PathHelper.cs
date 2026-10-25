@@ -10,10 +10,14 @@ namespace Entree.Core.Helpers;
 
 public static class PathHelper
 {
+   // Settings, saved domains and logs. The installed app has its own folder, %LocalAppData%\Entree,
+   // which Velopack empties on reinstall and uninstall
+   public static string DataDirectory { get; } =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Entree");
+
    public static string WriteableBaseDirectory()
    {
-      var baseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                                       "Entree");
+      var baseDirectory = DataDirectory;
       try
       {
          Directory.CreateDirectory(baseDirectory);

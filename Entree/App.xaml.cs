@@ -53,6 +53,9 @@ public partial class App
       services.AddSingleton<LicenseService>();
       services.AddSingleton<LogViewerService>();
       services.AddSingleton<INotificationService, NotificationService>();
+      services.AddSingleton<IUpdateService, UpdateService>();
+      services.AddSingleton<IUserDataService>(provider =>
+                                                       new UserDataService(provider.GetRequiredService<ITaskSchedulerService>()));
 
       services.AddSingleton<StartupController>();
 

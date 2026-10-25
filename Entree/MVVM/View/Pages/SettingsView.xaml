@@ -242,6 +242,18 @@
                         </Grid>
                     </ui:CardExpander.Header>
                     <StackPanel>
+                        <ui:Button Command="{Binding UpdateCommand}" Style="{StaticResource AboutRow}">
+                            <Grid>
+                                <StackPanel>
+                                    <ui:TextBlock Text="{Binding UpdateAction}" />
+                                    <ui:TextBlock Style="{StaticResource Description}" Text="{Binding UpdateStatus}" />
+                                </StackPanel>
+                                <ui:SymbolIcon
+                                    HorizontalAlignment="Right"
+                                    Symbol="ArrowSync24"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </ui:Button>
                         <ui:Anchor
                             Background="Transparent"
                             BorderThickness="0"
@@ -265,6 +277,18 @@
                             <Grid>
                                 <ui:TextBlock Text="Third party libraries" />
                                 <ui:SymbolIcon HorizontalAlignment="Right" Symbol="Library24" />
+                            </Grid>
+                        </ui:Button>
+                        <ui:Button Command="{Binding DeleteAllDataCommand}" Style="{StaticResource AboutRow}">
+                            <Grid>
+                                <StackPanel>
+                                    <ui:TextBlock Text="Delete all Entrée data" />
+                                    <ui:TextBlock Style="{StaticResource Description}" Text="Scheduled tasks, settings, saved domains and logs. Uninstalling keeps them." />
+                                </StackPanel>
+                                <ui:SymbolIcon
+                                    HorizontalAlignment="Right"
+                                    Symbol="Delete24"
+                                    VerticalAlignment="Center" />
                             </Grid>
                         </ui:Button>
                         <Border

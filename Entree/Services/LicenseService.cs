@@ -80,24 +80,23 @@ public class LicenseService
 
    private static List<LibraryInfo> LoadLibraryInformation()
    {
-      var libraries    = new List<LibraryInfo>();
-      var baseDir      = AppDomain.CurrentDomain.BaseDirectory;
-      var licensesPath = Path.Combine(baseDir, "Licenses");
+      var libraries = new List<LibraryInfo>();
+      var assembly  = typeof(LicenseService).Assembly;
 
-      if (!Directory.Exists(licensesPath))
-         return libraries;
-
-      foreach (var libraryDir in Directory.GetDirectories(licensesPath))
+      // Embedded as Licenses/<Library>\info.txt and Licenses/<Library>\LICENSE.txt
+      foreach (var infoFile in assembly.GetManifestResourceNames().Where(n => n.StartsWith("Licenses/")
+                                                                           && n.EndsWith("info.txt")))
       {
-         var licenseFile = Path.Combine(libraryDir, "LICENSE.txt");
+         var licenseFile = infoFile[..^"info.txt".Length] + "LICENSE.txt";
          try
          {
-            var infoFile = Path.Combine(libraryDir, "info.txt");
-            if (!File.Exists(infoFile) || !File.Exists(licenseFile))
+            var infoText    = ReadResource(infoFile);
+            var licenseText = ReadResource(licenseFile);
+            if (infoText is null || licenseText is null)
                continue;
 
             var library   = new LibraryInfo();
-            var infoLines = File.ReadAllLines(infoFile);
+            var infoLines = infoText.Split(["\r\n", "\n"], StringSplitOptions.None);
 
             foreach (var line in infoLines)
             {
@@ -124,7 +123,7 @@ public class LicenseService
                }
             }
 
-            library.LicenseText = File.ReadAllText(licenseFile);
+            library.LicenseText = licenseText;
             libraries.Add(library);
          }
          catch (Exception ex)
@@ -133,7 +132,16 @@ public class LicenseService
          }
       }
 
-      return libraries;
+      return libraries.OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+      string? ReadResource(string name)
+      {
+         using var stream = assembly.GetManifestResourceStream(name);
+         if (stream is null)
+            return null;
+         using var reader = new StreamReader(stream);
+         return reader.ReadToEnd();
+      }
    }
 
    public async Task ShowThirdPartyLicenseAsync()

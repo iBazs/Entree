@@ -31,6 +31,33 @@ internal sealed class FakeSearchService : ISearchService
    public Task WhenIdle() => Task.CompletedTask;
 }
 
+internal sealed class FakeUpdateService : IUpdateService
+{
+   public bool    IsInstalled { get; set; }
+   public string? Available   { get; set; }
+   public int     Installs    { get; private set; }
+
+   public Task<string?> CheckAsync() => Task.FromResult(Available);
+
+   public Task DownloadAndRestartAsync(Action<int> progress)
+   {
+      Installs++;
+      return Task.CompletedTask;
+   }
+}
+
+internal sealed class FakeUserDataService : IUserDataService
+{
+   public bool Succeeds { get; init; } = true;
+   public int  Deletes  { get; private set; }
+
+   public Task<bool> DeleteAllAsync()
+   {
+      Deletes++;
+      return Task.FromResult(Succeeds);
+   }
+}
+
 internal sealed class FakeNavigationService : INavigationService
 {
    public event PropertyChangedEventHandler? PropertyChanged;

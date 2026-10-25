@@ -90,7 +90,7 @@ public class ViewRenderTests(ITestOutputHelper output)
       ["TaskEditor"] = () => new TaskView { DataContext = TaskViewModelEditing() },
       ["Log"]      = () => new LogView { DataContext = new LogViewModel(new FakeSearchService(), new LogViewerService(new MemorySink()), new NotificationService()) },
       ["LogNotified"] = () => new LogView { DataContext = LogViewModelWithNotification() },
-      ["Settings"] = () => new SettingsView { DataContext = new SettingsViewModel(new FakeAppSettings(), new CredentialService(null), new LicenseService(), new NotificationService()) }
+      ["Settings"] = () => new SettingsView { DataContext = new SettingsViewModel(new FakeAppSettings(), new CredentialService(null), new LicenseService(), new NotificationService(), new FakeUpdateService(), new FakeSearchService(), new FakeUserDataService()) }
    };
 
    private static LogViewModel LogViewModelWithNotification()

@@ -41,20 +41,47 @@ jobs:
           $version = $env:TAG.TrimStart('v')
           New-Item -ItemType Directory -Force publish | Out-Null
           foreach ($rid in 'win-x64', 'win-arm64') {
-            foreach ($kind in 'framework-dependent', 'self-contained') {
-              $selfContained = "$($kind -eq 'self-contained')".ToLower()
-              $name = "Entree-$version-$rid-$kind"
-              dotnet publish Entree/Entree.csproj -c Release -r $rid --self-contained $selfContained `
+            foreach ($bundled in $false, $true) {
+              $selfContained = "$bundled".ToLower()
+              $name = "Entree-$version-$rid$(if ($bundled) { '-bundled' })"
+              dotnet publish Entree/Entree.csproj -c Release -r $rid -p:SelfContained=$selfContained `
                 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
                 -p:EnableCompressionInSingleFile=$selfContained -p:DebugType=embedded `
                 -p:Version=$version -o "out/$name"
               if ($LASTEXITCODE) { exit $LASTEXITCODE }
-              Compress-Archive -Path "out/$name/*" -DestinationPath "publish/$name.zip"
+              $files = @(Get-ChildItem "out/$name" -File)
+              if ($files.Count -ne 1) {
+                Write-Error "Expected only Entree.exe in out/$name, got: $($files.Name -join ', ')"
+                exit 1
+              }
+              Copy-Item "out/$name/Entree.exe" "publish/$name.exe"
             }
           }
-          Get-ChildItem publish/*.zip | ForEach-Object {
-            "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_.Name
-          } | Set-Content publish/SHA256SUMS.txt
+
+      - name: Installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          $pre = if ($env:TAG.Contains('-')) { '--pre' }
+          dotnet tool install -g vpk --version 1.2.161
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          foreach ($rid in 'win-x64', 'win-arm64') {
+            # Multi-file and self-contained, so updates download as small deltas without needing admin rights
+            dotnet publish Entree/Entree.csproj -c Release -r $rid -p:SelfContained=true -p:Version=$version -o "out/vpk-$rid"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            # The previous release is the base for delta updates; the first installer release has none
+            vpk download github --repoUrl "https://github.com/$env:GITHUB_REPOSITORY" --token $env:GH_TOKEN `
+              --channel $rid -o "releases/$rid" $pre
+            if ($LASTEXITCODE) { Write-Warning "No previous $rid release to build deltas from" }
+            # Installs into %LocalAppData%\Entree; settings, saved domains and logs live apart in %AppData%\Entree
+            vpk pack -u Entree -v $version -p "out/vpk-$rid" -e Entree.exe -c $rid -r $rid -o "releases/$rid" `
+              --packTitle "Entrée" --packAuthors Bazs -i Entree/Images/Entree.ico --noPortable
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            Copy-Item "releases/$rid/Entree-$rid-Setup.exe" "publish/Entree-$version-$rid-setup.exe"
+            Copy-Item "releases/$rid/releases.$rid.json", "releases/$rid/Entree-$version-$rid-*.nupkg" publish
+          }
 
       - name: Release notes
         shell: bash
@@ -66,11 +93,19 @@ jobs:
             echo
             echo "| File | For |"
             echo "|---|---|"
-            echo "| \`Entree-$version-win-x64-self-contained.zip\` | Most PCs and servers, no .NET install needed |"
-            echo "| \`Entree-$version-win-x64-framework-dependent.zip\` | Smaller, needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |"
-            echo "| \`Entree-$version-win-arm64-*.zip\` | Windows on ARM, same two choices |"
+            echo "| \`Entree-$version-win-x64-setup.exe\` | **Recommended.** Installs for your user, no admin needed, and updates itself |"
+            echo "| \`Entree-$version-win-x64-bundled.exe\` | Portable, no .NET install needed |"
+            echo "| \`Entree-$version-win-x64.exe\` | Portable and smaller, needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |"
+            echo "| \`Entree-$version-win-arm64*.exe\` | Windows on ARM, same three choices |"
             echo
-            echo "Unzip and run \`Entree.exe\`. Checksums are in \`SHA256SUMS.txt\`."
+            echo "Portable builds run from wherever you put them. Scheduled tasks point at that exact file, so keep it in one place when you upgrade."
+            echo "The \`.nupkg\` and \`releases.*.json\` files are for the built-in updater."
+            echo
+            echo "## SHA-256"
+            echo
+            echo '```'
+            (cd publish && sha256sum *.exe | sed 's/ \*/  /')
+            echo '```'
             echo
             echo "## Changes${previous:+ since $previous}"
             echo
@@ -88,5 +123,5 @@ jobs:
         run: |
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
-          gh release create "$TAG" publish/*.zip publish/SHA256SUMS.txt \
+          gh release create "$TAG" publish/* \
             --verify-tag --title "Entrée $TAG" --notes-file notes.md "${prerelease[@]}"

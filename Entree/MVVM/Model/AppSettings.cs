@@ -27,12 +27,7 @@ public interface IAppSettings
 
 public class AppSettings : IAppSettings
 {
-   public string AppLogPath { get; set; } = Path.Combine(
-                                                         Environment.GetFolderPath(Environment.SpecialFolder
-                                                                        .LocalApplicationData),
-                                                         "Entree",
-                                                         "Log"
-                                                        );
+   public string AppLogPath { get; set; } = Path.Combine(PathHelper.DataDirectory, "Log");
 
    public string AppResultPath { get; set; } = Path.Combine(
                                                             Environment.GetFolderPath(Environment.SpecialFolder
