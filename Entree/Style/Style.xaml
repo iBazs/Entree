@@ -1,0 +1,44 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:converters="clr-namespace:Entree.MVVM.View.Converter"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibility" />
+    <converters:InverseBooleanConverter x:Key="InverseBoolean" />
+    <converters:BoolToTextConverter x:Key="BoolToText" />
+    <converters:DepthToVisibilityConverter x:Key="DepthToVisibility" />
+    <converters:DepthLevelConverter x:Key="DepthLevelConverter" />
+    <converters:PathToFolderNameConverter x:Key="GetShortPath" />
+    <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+    <converters:ListToVisibilityConverter x:Key="ListToVisibility" />
+    <converters:LogEventRenderConverter x:Key="LogEventRenderer" />
+    <converters:LogEventColorConverter x:Key="EventToColor" />
+
+    <Color x:Key="Primary200">#38B000</Color>
+    <Color x:Key="Primary300">#008000</Color>
+    <Color x:Key="Primary400">#007200</Color>
+    <Color x:Key="Primary500">#006400</Color>
+    <Color x:Key="Primary600">#004B23</Color>
+
+    <Thickness x:Key="PageContentMargin">24,0,24,24</Thickness>
+
+    <Style TargetType="ui:TextBlock" x:Key="SectionHeader">
+        <Setter Property="FontTypography" Value="BodyStrong" />
+        <Setter Property="Margin" Value="0,24,0,8" />
+    </Style>
+
+    <Style TargetType="Border" x:Key="DividerH">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="0,12" />
+        <Setter Property="Background" Value="{ui:ThemeResource DividerStrokeColorDefaultBrush}" />
+    </Style>
+
+    <Style TargetType="Border" x:Key="CardHeaderStrip">
+        <Setter Property="Background" Value="{ui:ThemeResource ControlFillColorTertiaryBrush}" />
+        <Setter Property="CornerRadius" Value="8,8,0,0" />
+        <Setter Property="Padding" Value="16,8" />
+    </Style>
+
+</ResourceDictionary>

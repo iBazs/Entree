@@ -1,0 +1,4 @@
+﻿Name: Sep
+Creator: Nietras
+Link: https://github.com/nietras/Sep
+License: MIT License

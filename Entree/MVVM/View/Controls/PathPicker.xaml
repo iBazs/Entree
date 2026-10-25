@@ -1,0 +1,30 @@
+﻿<UserControl
+    Background="Transparent"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.PathPicker"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <ui:TextBox
+            IsReadOnly="{Binding IsReadOnly, ElementName=Root}"
+            PlaceholderText="{Binding Placeholder, ElementName=Root}"
+            Text="{Binding Path, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            ToolTip="{Binding Path, ElementName=Root}" />
+        <ui:Button
+            Appearance="Secondary"
+            Command="{Binding BrowseCommand, ElementName=Root}"
+            Grid.Column="1"
+            Icon="{Binding BrowseIcon, ElementName=Root}"
+            Margin="8,0,0,0"
+            ToolTip="{Binding BrowseToolTip, ElementName=Root}"
+            VerticalAlignment="Stretch" />
+    </Grid>
+</UserControl>

@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test Entree.sln -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          New-Item -ItemType Directory -Force publish | Out-Null
+          foreach ($rid in 'win-x64', 'win-arm64') {
+            foreach ($kind in 'framework-dependent', 'self-contained') {
+              $selfContained = "$($kind -eq 'self-contained')".ToLower()
+              $name = "Entree-$version-$rid-$kind"
+              dotnet publish Entree/Entree.csproj -c Release -r $rid --self-contained $selfContained `
+                -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+                -p:EnableCompressionInSingleFile=$selfContained -p:DebugType=embedded `
+                -p:Version=$version -o "out/$name"
+              if ($LASTEXITCODE) { exit $LASTEXITCODE }
+              Compress-Archive -Path "out/$name/*" -DestinationPath "publish/$name.zip"
+            }
+          }
+          Get-ChildItem publish/*.zip | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_.Name
+          } | Set-Content publish/SHA256SUMS.txt
+
+      - name: Release notes
+        shell: bash
+        run: |
+          previous=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          version=${TAG#v}
+          {
+            echo "## Downloads"
+            echo
+            echo "| File | For |"
+            echo "|---|---|"
+            echo "| \`Entree-$version-win-x64-self-contained.zip\` | Most PCs and servers, no .NET install needed |"
+            echo "| \`Entree-$version-win-x64-framework-dependent.zip\` | Smaller, needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |"
+            echo "| \`Entree-$version-win-arm64-*.zip\` | Windows on ARM, same two choices |"
+            echo
+            echo "Unzip and run \`Entree.exe\`. Checksums are in \`SHA256SUMS.txt\`."
+            echo
+            echo "## Changes${previous:+ since $previous}"
+            echo
+            git log --no-merges --pretty='- %s (%h)' "${previous:+$previous..}$TAG"
+            if [ -n "$previous" ]; then
+              echo
+              echo "**Full diff:** https://github.com/$GITHUB_REPOSITORY/compare/$previous...$TAG"
+            fi
+          } > notes.md
+
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
+          gh release create "$TAG" publish/*.zip publish/SHA256SUMS.txt \
+            --verify-tag --title "Entrée $TAG" --notes-file notes.md "${prerelease[@]}"

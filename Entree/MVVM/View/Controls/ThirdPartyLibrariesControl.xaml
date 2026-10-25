@@ -1,0 +1,113 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=local:ThirdPartyLibrariesControl}"
+    d:DesignHeight="600"
+    d:DesignWidth="850"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.ThirdPartyLibrariesControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="clr-namespace:Entree.MVVM.Model"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="0,12,0,0">
+        <TabControl ItemsSource="{Binding Libraries}">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Header" Value="{Binding Name}" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border
+                                    Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{ui:ThemeResource ControlElevationBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Margin="0,0,9,0"
+                                    Padding="9,3"
+                                    x:Name="MainBorder">
+                                    <Label
+                                        Content="{TemplateBinding Header}"
+                                        FontSize="12"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        x:Name="HeaderText" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" TargetName="MainBorder" Value="{ui:ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                        <Setter Property="BorderBrush" TargetName="MainBorder" Value="{ui:ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                        <Setter Property="TextElement.Foreground" TargetName="HeaderText" Value="{ui:ThemeResource TextFillColorInverseBrush}" />
+                                        <Setter Property="FontWeight" Value="Medium" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+            <TabControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type model:LibraryInfo}">
+                    <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate DataType="{x:Type model:LibraryInfo}">
+                    <ScrollViewer Padding="12" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Orientation="Vertical">
+                            <StackPanel Margin="0,18,0,0" Orientation="Horizontal">
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    FontTypography="Subtitle"
+                                    FontWeight="SemiBold"
+                                    Text="Creator: " />
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    FontTypography="Subtitle"
+                                    Text="{Binding Creator}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,-3,0,9" Orientation="Horizontal">
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    FontStyle="Italic"
+                                    Text="License: " />
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    FontStyle="Italic"
+                                    Margin="6,0"
+                                    Text="{Binding LicenseType, FallbackValue=License type}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,0,36" Orientation="Horizontal">
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    FontWeight="SemiBold"
+                                    Text="Homepage: " />
+                                <ui:Anchor
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Margin="6,0"
+                                    NavigateUri="{Binding Link}"
+                                    Padding="0">
+                                    <ui:TextBlock Foreground="{ui:ThemeResource AccentTextFillColorPrimaryBrush}" Text="{Binding Link, FallbackValue=link should be here}" />
+                                </ui:Anchor>
+                            </StackPanel>
+
+                            <ui:TextBlock
+                                Appearance="Tertiary"
+                                FontFamily="Consolas"
+                                FontTypography="Caption"
+                                Text="{Binding LicenseText, FallbackValue=Description of License}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+    </Grid>
+</UserControl>

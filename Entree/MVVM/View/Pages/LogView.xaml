@@ -1,0 +1,232 @@
+﻿<UserControl
+    Background="Transparent"
+    MinWidth="200"
+    d:DataContext="{d:DesignInstance Type=viewmodel:LogViewModel}"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Pages.LogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewmodel="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid x:Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid
+            Margin="8"
+            MinHeight="40"
+            SizeChanged="Bar_OnSizeChanged"
+            x:Name="Bar">
+            <Grid
+                HorizontalAlignment="Center"
+                IsHitTestVisible="False"
+                Margin="136,0"
+                MaxWidth="720"
+                Opacity="0"
+                VerticalAlignment="Center"
+                x:Name="NotificationHost">
+                <Grid.RenderTransform>
+                    <TranslateTransform Y="12" x:Name="NotificationShift" />
+                </Grid.RenderTransform>
+                <ui:InfoBar
+                    IsClosable="True"
+                    IsOpen="True"
+                    Message="{Binding ShownNotification.Message}"
+                    Severity="{Binding ShownNotification.Severity}"
+                    Title="{Binding ShownNotification.Title}"
+                    x:Name="NotificationBar" />
+            </Grid>
+
+            <ui:Button
+                Appearance="Secondary"
+                Click="LogViewButton_Click"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Width="120"
+                x:Name="LogButton">
+                <ui:Button.RenderTransform>
+                    <TranslateTransform x:Name="ButtonShift" />
+                </ui:Button.RenderTransform>
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Margin="0,0,8,0" Symbol="TextBulletListLtr24" />
+                    <ui:TextBlock Text="Log" VerticalAlignment="Center" />
+                    <ui:InfoBadge
+                        Margin="4,0,0,9"
+                        Severity="Success"
+                        Style="{DynamicResource DotInfoBadgeStyle}"
+                        Visibility="Collapsed"
+                        x:Name="InfoBadge" />
+                </StackPanel>
+            </ui:Button>
+        </Grid>
+
+        <Border
+            Background="{ui:ThemeResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            Grid.Row="1"
+            MaxHeight="600"
+            MinHeight="100"
+            x:Name="LogViewer">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel HorizontalAlignment="Center" x:Name="LogSizerHost">
+                    <Thumb
+                        Cursor="SizeNS"
+                        DragCompleted="LogSplitter_OnDragCompleted"
+                        DragDelta="LogSplitter_OnDragDelta"
+                        Height="14"
+                        HorizontalAlignment="Center"
+                        ToolTip="Drag to resize"
+                        VerticalAlignment="Top"
+                        Width="96"
+                        x:Name="LogSizer">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <ControlTemplate.Resources>
+                                    <Storyboard x:Key="GripHover">
+                                        <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="Line" Storyboard.TargetProperty="Width" To="72" />
+                                        <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="Line" Storyboard.TargetProperty="Opacity" To="1" />
+                                    </Storyboard>
+                                    <Storyboard x:Key="GripRest">
+                                        <DoubleAnimation Duration="0:0:0.2" Storyboard.TargetName="Line" Storyboard.TargetProperty="Width" To="40" />
+                                        <DoubleAnimation Duration="0:0:0.2" Storyboard.TargetName="Line" Storyboard.TargetProperty="Opacity" To="0.45" />
+                                    </Storyboard>
+                                </ControlTemplate.Resources>
+                                <Grid Background="Transparent">
+                                    <Border
+                                        Background="{ui:ThemeResource TextFillColorTertiaryBrush}"
+                                        CornerRadius="2"
+                                        Height="4"
+                                        Opacity="0.45"
+                                        VerticalAlignment="Center"
+                                        Width="40"
+                                        x:Name="Line" />
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard Storyboard="{StaticResource GripHover}" />
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard Storyboard="{StaticResource GripRest}" />
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                    <Trigger Property="IsDragging" Value="True">
+                                        <Setter Property="Background" TargetName="Line" Value="{ui:ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                    <ui:Button
+                        Appearance="Transparent"
+                        Click="LogViewButton_Click"
+                        HorizontalAlignment="Center"
+                        Icon="{ui:SymbolIcon ChevronDown24}"
+                        Margin="0,0,0,4"
+                        Padding="12,2"
+                        ToolTip="Hide the log" />
+                </StackPanel>
+                <ui:TextBlock
+                    Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    Text="No log entries yet"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding LogEvents.Count, Converter={StaticResource ListToVisibility}, ConverterParameter=invert}" />
+                <ItemsControl
+                    Background="Transparent"
+                    Grid.Row="1"
+                    ItemsSource="{Binding LogEvents}"
+                    Padding="10"
+                    ScrollViewer.CanContentScroll="True"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.ScrollUnit="Pixel"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    x:Name="LogItems">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                <ui:DynamicScrollViewer
+                                    CanContentScroll="True"
+                                    Focusable="False"
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter />
+                                </ui:DynamicScrollViewer>
+                            </Border>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,2,0,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="Transparent" />
+                                        <Setter Property="BorderThickness" Value="1,0,0,0" />
+                                        <Setter Property="Padding" Value="3,0,0,0" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="BorderBrush" Value="{ui:ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <ui:TextBlock
+                                    FontFamily="Cascadia Mono, Consolas"
+                                    FontSize="12"
+                                    Foreground="{Binding Level, Converter={StaticResource EventToColor}}"
+                                    Text="{Binding Converter={StaticResource LogEventRenderer}}"
+                                    TextWrapping="Wrap">
+                                    <ui:TextBlock.ContextMenu>
+                                        <ContextMenu>
+                                            <ui:MenuItem
+                                                Click="CopyLogEntry_Click"
+                                                Header="Copy this line"
+                                                Icon="{ui:SymbolIcon Copy24}" />
+                                            <Separator />
+                                            <ui:MenuItem
+                                                Click="CopyAllLogs_Click"
+                                                Header="Copy all logs"
+                                                Icon="{ui:SymbolIcon DocumentCopy24}" />
+                                            <Separator />
+                                            <ui:MenuItem
+                                                Click="ScrollToBottom_Click"
+                                                Header="Scroll to bottom"
+                                                Icon="{ui:SymbolIcon ArrowDown24}" />
+                                            <ui:MenuItem
+                                                Click="ClearLog_Click"
+                                                Header="Clear"
+                                                Icon="{ui:SymbolIcon Eraser24}" />
+                                        </ContextMenu>
+                                    </ui:TextBlock.ContextMenu>
+                                </ui:TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <ProgressBar
+            Grid.Row="2"
+            Height="2"
+            IsIndeterminate="{Binding IsRunning}"
+            Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+    </Grid>
+</UserControl>

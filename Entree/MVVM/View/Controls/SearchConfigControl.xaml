@@ -1,0 +1,248 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=viewModel:SearchConfigViewModel}"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.SearchConfigControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:Entree.MVVM.View.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewModel="clr-namespace:Entree.MVVM.ViewModel"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style TargetType="ui:TextBlock" x:Key="FieldLabel">
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style TargetType="StackPanel" x:Key="Field">
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+    </UserControl.Resources>
+
+    <Border
+        Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8"
+        Margin="0,0,0,12">
+        <StackPanel>
+            <Border Style="{StaticResource CardHeaderStrip}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:TextBlock
+                        FontTypography="BodyStrong"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding SearchDirectory}"
+                        VerticalAlignment="Center">
+                        <ui:TextBlock.Style>
+                            <Style TargetType="ui:TextBlock">
+                                <Setter Property="Text" Value="{Binding SearchDirectory, Converter={StaticResource GetShortPath}}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SearchDirectory}" Value="">
+                                        <Setter Property="Text" Value="New search" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding SearchDirectory}" Value="{x:Null}">
+                                        <Setter Property="Text" Value="New search" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ui:TextBlock.Style>
+                    </ui:TextBlock>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- ReSharper disable once Xaml.BindingWithContextNotResolved -->
+                        <ui:Button
+                            Appearance="Transparent"
+                            Command="{Binding DataContext.CopyConfigCommand, RelativeSource={RelativeSource AncestorType={x:Type pages:CreateConfigView}}}"
+                            CommandParameter="{Binding Id}"
+                            Icon="{ui:SymbolIcon CopyAdd24}"
+                            ToolTip="Duplicate this configuration" />
+                        <!-- ReSharper disable once Xaml.BindingWithContextNotResolved -->
+                        <ui:Button
+                            Appearance="Transparent"
+                            Command="{Binding DataContext.RemoveConfigCommand, RelativeSource={RelativeSource AncestorType={x:Type pages:CreateConfigView}}}"
+                            CommandParameter="{Binding Id}"
+                            Icon="{ui:SymbolIcon Delete24}"
+                            Margin="4,0,0,0"
+                            ToolTip="Remove this configuration" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition MinWidth="240" Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition MinWidth="240" Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <ui:TextBlock
+                        FontTypography="BodyStrong"
+                        Margin="0,0,0,12"
+                        Text="What to scan" />
+
+                    <StackPanel Style="{StaticResource Field}">
+                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Search path" />
+                        <controls:PathPicker
+                            BrowseCommand="{Binding SelectSearchFolderCommand}"
+                            BrowseToolTip="Choose the folder to scan"
+                            Path="{Binding SearchDirectory}"
+                            Placeholder="Folder or share to scan, for example \\server\share" />
+                    </StackPanel>
+
+                    <StackPanel Style="{StaticResource Field}">
+                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Save path" />
+                        <controls:PathPicker
+                            BrowseCommand="{Binding SelectSaveFolderCommand}"
+                            BrowseToolTip="Choose where the report is saved"
+                            Path="{Binding SaveDirectory}"
+                            Placeholder="Folder for the report" />
+                    </StackPanel>
+
+                    <StackPanel Style="{StaticResource Field}">
+                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Search for" />
+                        <ComboBox
+                            DisplayMemberPath="Value"
+                            ItemsSource="{Binding SearchForChoices}"
+                            SelectedValue="{Binding SearchFor}"
+                            SelectedValuePath="Key" />
+                    </StackPanel>
+
+                    <StackPanel Style="{StaticResource Field}">
+                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Depth" />
+                        <ComboBox ItemsSource="{Binding SearchDepthList}" SelectedItem="{Binding SelectedDepthOption, UpdateSourceTrigger=PropertyChanged}" />
+                        <ui:NumberBox
+                            ClearButtonEnabled="False"
+                            Margin="0,8,0,0"
+                            Minimum="2"
+                            SpinButtonPlacementMode="Inline"
+                            ToolTip="Number of folder levels to scan (2 or more)"
+                            ValidationMode="InvalidInputOverwritten"
+                            Value="{Binding DepthLevel, FallbackValue=2, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{Binding DepthLevel, Converter={StaticResource DepthToVisibility}}" />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource DividerH}" />
+
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding IsLocalSearch, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Local domain only"
+                        ToggleTooltip="Translate SIDs with the local domain only, without the domains added in Settings" />
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding Inherited, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Include inherited permissions"
+                        ToggleTooltip="Also list permissions inherited from parent folders" />
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding ShowOwner, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Include owners"
+                        ToggleTooltip="Add the owner of each item to the report" />
+                </StackPanel>
+
+                <Border
+                    Background="{ui:ThemeResource DividerStrokeColorDefaultBrush}"
+                    Grid.Column="1"
+                    Margin="24,0"
+                    Width="1" />
+
+                <StackPanel Grid.Column="2">
+                    <ui:TextBlock
+                        FontTypography="BodyStrong"
+                        Margin="0,0,0,12"
+                        Text="Report" />
+
+                    <StackPanel Style="{StaticResource Field}">
+                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Format" />
+                        <ComboBox ItemsSource="{Binding FileFormat}" SelectedItem="{Binding StringExportAs}" />
+                    </StackPanel>
+
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding ShowGroups, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Group members"
+                        ToggleTooltip="List the members of each group that has access" />
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding ShowMatrix, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Access matrix"
+                        ToggleTooltip="Add a sheet with folders as rows and accounts as columns" />
+
+                    <Border
+                        Background="{ui:ThemeResource SubtleFillColorSecondaryBrush}"
+                        CornerRadius="6"
+                        Margin="0,4,0,8"
+                        Padding="12"
+                        Visibility="{Binding ShowMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Excluded from the matrix" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox PlaceholderText="Account name or SID" x:Name="AccountTextBox">
+                                    <ui:TextBox.InputBindings>
+                                        <KeyBinding
+                                            Command="{Binding AddAccountCommand}"
+                                            CommandParameter="{Binding Text, ElementName=AccountTextBox}"
+                                            Key="Enter" />
+                                    </ui:TextBox.InputBindings>
+                                </ui:TextBox>
+                                <ui:Button
+                                    Appearance="Secondary"
+                                    Command="{Binding AddAccountCommand}"
+                                    CommandParameter="{Binding Text, ElementName=AccountTextBox}"
+                                    Content="Add"
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Stretch" />
+                            </Grid>
+                            <ui:ListView
+                                Background="Transparent"
+                                ItemsSource="{Binding ExcludedAccounts}"
+                                Margin="0,8,0,0"
+                                MaxHeight="192"
+                                Visibility="{Binding ExcludedAccounts.Count, Converter={StaticResource ListToVisibility}}">
+                                <ui:ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBlock
+                                                Margin="4,0"
+                                                Text="{Binding}"
+                                                TextTrimming="CharacterEllipsis"
+                                                VerticalAlignment="Center" />
+                                            <ui:Button
+                                                Appearance="Transparent"
+                                                Command="{Binding DataContext.RemoveAccountCommand, RelativeSource={RelativeSource AncestorType={x:Type ui:ListView}}}"
+                                                CommandParameter="{Binding}"
+                                                Grid.Column="1"
+                                                Icon="{ui:SymbolIcon Dismiss24}"
+                                                Opacity="0.6"
+                                                ToolTip="Remove from the exclusion list"
+                                                x:Name="RemoveButton" />
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type ui:ListViewItem}}}" Value="True">
+                                                <Setter Property="Opacity" TargetName="RemoveButton" Value="1" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ui:ListView.ItemTemplate>
+                            </ui:ListView>
+                        </StackPanel>
+                    </Border>
+
+                    <controls:ToggleSwitchWithLabel
+                        IsChecked="{Binding OpenResult, UpdateSourceTrigger=PropertyChanged}"
+                        ToggleText="Open report when finished"
+                        ToggleTooltip="Open the report as soon as the search completes" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

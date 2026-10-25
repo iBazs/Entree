@@ -1,0 +1,4 @@
+﻿Name: Serilog
+Creator: Serilog Contributors
+Link: https://serilog.net/
+License: Apache License 2.0

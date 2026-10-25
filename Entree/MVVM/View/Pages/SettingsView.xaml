@@ -1,0 +1,286 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=viewmodel:SettingsViewModel}"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Pages.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewmodel="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style BasedOn="{StaticResource DefaultUiCardControlStyle}" TargetType="ui:CardControl">
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style TargetType="ui:TextBlock" x:Key="Description">
+            <Setter Property="FontTypography" Value="Caption" />
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style
+            BasedOn="{StaticResource DefaultUiButtonStyle}"
+            TargetType="ui:Button"
+            x:Key="AboutRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid MaxWidth="1200" MinWidth="540">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <controls:PageHeader
+            Grid.Row="0"
+            Subtitle="Appearance, locations, domains, performance and about"
+            Title="Settings" />
+
+        <ScrollViewer
+            Grid.Row="1"
+            Padding="{StaticResource PageContentMargin}"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ui:TextBlock
+                    Margin="0,0,0,8"
+                    Style="{StaticResource SectionHeader}"
+                    Text="Appearance" />
+                <ui:CardControl Icon="{ui:SymbolIcon DarkTheme24}">
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="App theme" />
+                            <ui:TextBlock Style="{StaticResource Description}" Text="Follow Windows, or always use light or dark" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ComboBox
+                        ItemsSource="{Binding ThemeChoices}"
+                        MinWidth="140"
+                        SelectedItem="{Binding Theme}" />
+                </ui:CardControl>
+
+                <ui:TextBlock Style="{StaticResource SectionHeader}" Text="Locations" />
+                <ui:CardControl Icon="{ui:SymbolIcon DocumentBulletList24}">
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="Log folder" />
+                            <ui:TextBlock
+                                Style="{StaticResource Description}"
+                                Text="{Binding LogPath}"
+                                ToolTip="{Binding LogPath}" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ui:Button
+                        Command="{Binding SelectLogPathCommand}"
+                        Content="Browse"
+                        Icon="{ui:SymbolIcon FolderOpen24}" />
+                </ui:CardControl>
+                <ui:CardControl Icon="{ui:SymbolIcon FolderArrowRight24}">
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="Default report folder" />
+                            <ui:TextBlock
+                                Style="{StaticResource Description}"
+                                Text="{Binding ResultPath}"
+                                ToolTip="{Binding ResultPath}" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ui:Button
+                        Command="{Binding SelectResultPathCommand}"
+                        Content="Browse"
+                        Icon="{ui:SymbolIcon FolderOpen24}" />
+                </ui:CardControl>
+
+                <ui:TextBlock Style="{StaticResource SectionHeader}" Text="Domains" />
+                <ui:CardExpander Icon="{ui:SymbolIcon Globe24}" Margin="0,0,0,4">
+                    <ui:CardExpander.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="Add a domain" />
+                            <ui:TextBlock Style="{StaticResource Description}" Text="Used to resolve accounts from other domains" />
+                        </StackPanel>
+                    </ui:CardExpander.Header>
+                    <StackPanel>
+                        <ui:TextBlock Margin="0,0,0,4" Text="Domain, DNS name or IP address" />
+                        <ui:TextBox PlaceholderText="corp.example.com or 10.0.0.5" Text="{Binding DomainPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <ui:TextBlock Margin="0,0,0,4" Text="User name (optional)" />
+                                <ui:TextBox PlaceholderText="DOMAIN\user" Text="{Binding DomainUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <ui:TextBlock Margin="0,0,0,4" Text="Password (optional)" />
+                                <ui:PasswordBox Password="{Binding DomainPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Password" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel
+                            HorizontalAlignment="Right"
+                            Margin="0,12,0,0"
+                            Orientation="Horizontal">
+                            <ui:ProgressRing
+                                Height="20"
+                                IsIndeterminate="True"
+                                Margin="0,0,12,0"
+                                Visibility="{Binding IsValidating, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Width="20" />
+                            <ui:Button
+                                Appearance="Secondary"
+                                Command="{Binding ValidateDomainCommand}"
+                                Content="Test connection"
+                                Icon="{ui:SymbolIcon PlugConnected24}"
+                                Margin="0,0,8,0" />
+                            <ui:Button
+                                Appearance="Primary"
+                                Command="{Binding AddDomainCommand}"
+                                Content="Add"
+                                Icon="{ui:SymbolIcon Add24}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:CardExpander>
+
+                <ui:CardExpander Icon="{ui:SymbolIcon List24}">
+                    <ui:CardExpander.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="Configured domains" />
+                            <ui:TextBlock Style="{StaticResource Description}" Text="{Binding Domains.Count, StringFormat='{}{0} configured'}" />
+                        </StackPanel>
+                    </ui:CardExpander.Header>
+                    <Grid>
+                        <controls:EmptyState
+                            Icon="Globe24"
+                            IconSize="28"
+                            Spacing="0,12"
+                            Title="No domains added"
+                            Visibility="{Binding Domains.Count, Converter={StaticResource ListToVisibility}, ConverterParameter=invert}" />
+                        <ui:ListView
+                            ItemsSource="{Binding Domains}"
+                            MaxHeight="240"
+                            Visibility="{Binding Domains.Count, Converter={StaticResource ListToVisibility}}">
+                            <ui:ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBlock
+                                            Margin="4,0"
+                                            Text="{Binding DomainPath}"
+                                            TextTrimming="CharacterEllipsis"
+                                            VerticalAlignment="Center" />
+                                        <ui:Button
+                                            Appearance="Transparent"
+                                            Command="{Binding DataContext.RemoveDomainCommand, RelativeSource={RelativeSource AncestorType={x:Type ui:ListView}}}"
+                                            CommandParameter="{Binding}"
+                                            Grid.Column="1"
+                                            Icon="{ui:SymbolIcon Delete24}"
+                                            ToolTip="Remove this domain" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ui:ListView.ItemTemplate>
+                        </ui:ListView>
+                    </Grid>
+                </ui:CardExpander>
+
+                <ui:TextBlock Style="{StaticResource SectionHeader}" Text="Performance" />
+                <ui:CardControl Icon="{ui:SymbolIcon TopSpeed24}">
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <ui:TextBlock Text="Parallel threads" />
+                            <ui:TextBlock Style="{StaticResource Description}" Text="How many folders are read at the same time while scanning" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:TextBlock
+                            Margin="0,0,12,0"
+                            MinWidth="72"
+                            Text="{Binding ThreadLimit, StringFormat='{}{0} threads'}"
+                            TextAlignment="Right"
+                            VerticalAlignment="Center" />
+                        <Slider
+                            IsSnapToTickEnabled="True"
+                            Maximum="{Binding MaxParallelSize}"
+                            MaxWidth="300"
+                            MinWidth="200"
+                            Minimum="2"
+                            TickFrequency="2"
+                            Value="{Binding ThreadLimit}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:CardControl>
+
+                <ui:TextBlock Style="{StaticResource SectionHeader}" Text="About" />
+                <ui:CardExpander ContentPadding="0">
+                    <ui:CardExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image
+                                Height="40"
+                                Margin="0,0,12,0"
+                                Source="pack://application:,,,/images/entree.png"
+                                VerticalAlignment="Center"
+                                Width="40" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <ui:TextBlock FontTypography="BodyStrong" Text="Entrée" />
+                                <ui:TextBlock Style="{StaticResource Description}" Text="{Binding AppVersion, StringFormat='{}Get fast, find fast.  ·  Version {0}'}" />
+                            </StackPanel>
+                        </Grid>
+                    </ui:CardExpander.Header>
+                    <StackPanel>
+                        <ui:Anchor
+                            Background="Transparent"
+                            BorderThickness="0"
+                            CornerRadius="0"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            NavigateUri="https://github.com/iBazs/Entree"
+                            Padding="16">
+                            <Grid>
+                                <ui:TextBlock Text="View source code" />
+                                <ui:SymbolIcon HorizontalAlignment="Right" Symbol="Open24" />
+                            </Grid>
+                        </ui:Anchor>
+                        <ui:Button Command="{Binding ShowLicenseCommand}" Style="{StaticResource AboutRow}">
+                            <Grid>
+                                <ui:TextBlock Text="License (GPL-3.0)" />
+                                <ui:SymbolIcon HorizontalAlignment="Right" Symbol="Document24" />
+                            </Grid>
+                        </ui:Button>
+                        <ui:Button Command="{Binding ShowThirdPartyLibrariesCommand}" Style="{StaticResource AboutRow}">
+                            <Grid>
+                                <ui:TextBlock Text="Third party libraries" />
+                                <ui:SymbolIcon HorizontalAlignment="Right" Symbol="Library24" />
+                            </Grid>
+                        </ui:Button>
+                        <Border
+                            Background="{ui:ThemeResource ControlAltFillColorTertiaryBrush}"
+                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,1,0,0"
+                            CornerRadius="0,0,8,8"
+                            Padding="16">
+                            <ui:TextBlock
+                                Style="{StaticResource Description}"
+                                Text="By using this application, you accept its terms and conditions."
+                                TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                </ui:CardExpander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

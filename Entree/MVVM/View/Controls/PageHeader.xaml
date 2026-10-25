@@ -1,0 +1,24 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DesignHeight="120"
+    d:DesignWidth="810"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.PageHeader"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="24,36,24,12">
+        <ui:TextBlock
+            Appearance="Primary"
+            FontTypography="Title"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+            Text="{Binding Title, FallbackValue=Page Title, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        <ui:TextBlock
+            FontTypography="Caption"
+            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+            Margin="0,4,0,0"
+            Text="{Binding Subtitle, FallbackValue=Page Subtitle, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+    </StackPanel>
+</UserControl>

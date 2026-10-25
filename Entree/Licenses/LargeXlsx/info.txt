@@ -1,0 +1,4 @@
+﻿Name: LargeXlsx
+Creator: Salvatore ISAJA
+Link: https://github.com/salvois/LargeXlsx
+License: BSD 2-Clause License

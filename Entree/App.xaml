@@ -1,0 +1,38 @@
+﻿<Application
+    x:Class="Entree.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:view="clr-namespace:Entree.MVVM.View.Pages"
+    xmlns:viewModel="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+                <ResourceDictionary Source="/Entree;component/Style/Style.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <DataTemplate DataType="{x:Type viewModel:HomeViewModel}">
+                <view:HomeView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:CreateConfigViewModel}">
+                <view:CreateConfigView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:SettingsViewModel}">
+                <view:SettingsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:SearchViewModel}">
+                <view:SearchView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:TaskViewModel}">
+                <view:TaskView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:CompareViewModel}">
+                <view:CompareView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModel:LogViewModel}">
+                <view:LogView />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

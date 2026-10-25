@@ -1,0 +1,209 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=viewmodel:CompareViewModel}"
+    d:DesignHeight="800"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Pages.CompareView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewmodel="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid MaxWidth="1200">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <controls:PageHeader
+            Grid.Row="0"
+            Subtitle="See what changed between two reports from different dates or sources"
+            Title="Compare" />
+
+        <Grid Grid.Row="1" Margin="24,9">
+            <ui:Button
+                Appearance="Secondary"
+                Command="{Binding OpenOutputCommand}"
+                Content="Open export"
+                HorizontalAlignment="Left"
+                Icon="{ui:SymbolIcon Open24}"
+                ToolTip="Open the last exported comparison" />
+
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <ui:Button
+                    Appearance="Secondary"
+                    Command="{Binding ClearCommand}"
+                    Icon="{ui:SymbolIcon ArrowReset24}"
+                    Margin="0,0,8,0"
+                    ToolTip="Clear the results"
+                    Visibility="{Binding IsExportable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ui:Button
+                    Appearance="Secondary"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    Icon="{ui:SymbolIcon Dismiss24}"
+                    IsCancel="True"
+                    Margin="0,0,8,0"
+                    ToolTip="Cancel the comparison"
+                    Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ui:DropDownButton
+                    Appearance="Secondary"
+                    Content="Export"
+                    Icon="{ui:SymbolIcon Save24}"
+                    Margin="0,0,8,0"
+                    ToolTip="Export every difference, not only the preview"
+                    Visibility="{Binding IsExportable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ui:DropDownButton.Flyout>
+                        <ContextMenu>
+                            <MenuItem
+                                Command="{Binding ExportResultsCommand}"
+                                CommandParameter="xlsx"
+                                Header="Excel (.xlsx)" />
+                            <MenuItem
+                                Command="{Binding ExportResultsCommand}"
+                                CommandParameter="csv"
+                                Header="CSV (.csv)" />
+                        </ContextMenu>
+                    </ui:DropDownButton.Flyout>
+                </ui:DropDownButton>
+                <ui:Button
+                    Appearance="Primary"
+                    Command="{Binding CompareCommand}"
+                    Content="{Binding ControlButtonContent}"
+                    Icon="{Binding ControlButtonIcon}"
+                    IsDefault="True"
+                    ToolTip="Compare the two reports" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Margin="24,0,24,8">
+            <ProgressBar
+                IsIndeterminate="True"
+                Margin="0,0,0,8"
+                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <ui:DynamicScrollViewer
+            Grid.Row="3"
+            HorizontalScrollBarVisibility="Disabled"
+            Padding="{StaticResource PageContentMargin}"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ui:Card Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <ui:TextBlock Margin="0,0,0,4" Text="Older report" />
+                            <controls:PathPicker
+                                BrowseCommand="{Binding BrowseOriginalCommand}"
+                                BrowseToolTip="Choose the older report"
+                                Path="{Binding OriginalFilePath}"
+                                Placeholder="Report to compare from (.xlsx, .zip or .csv)" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <ui:TextBlock Margin="0,0,0,4" Text="Newer report" />
+                            <controls:PathPicker
+                                BrowseCommand="{Binding BrowseCompareCommand}"
+                                BrowseToolTip="Choose the newer report"
+                                Path="{Binding NewFilePath}"
+                                Placeholder="Report to compare to (.xlsx, .zip or .csv)" />
+                        </StackPanel>
+                    </Grid>
+                </ui:Card>
+
+                <Border
+                    Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Margin="0,12,0,0"
+                    Visibility="{Binding ComparisonResults.Count, Converter={StaticResource ListToVisibility}}">
+                    <StackPanel>
+                        <Border Style="{StaticResource CardHeaderStrip}">
+                            <ui:TextBlock FontTypography="BodyStrong" Text="{Binding ComparisonResults.Count, StringFormat='{}Differences, {0:N0} paths in the preview'}" />
+                        </Border>
+                        <DataGrid
+                            AutoGenerateColumns="False"
+                            BorderThickness="0"
+                            EnableColumnVirtualization="True"
+                            EnableRowVirtualization="True"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding ComparisonResults}"
+                            MaxHeight="560"
+                            MinHeight="90"
+                            ScrollViewer.CanContentScroll="True"
+                            VirtualizingPanel.IsVirtualizing="True"
+                            VirtualizingPanel.VirtualizationMode="Recycling">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Path" Width="2*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ui:TextBlock
+                                                Text="{Binding Path}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding Path}"
+                                                VerticalAlignment="Center" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Difference" Width="3*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ItemsControl ItemsSource="{Binding Tags}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border
+                                                            Background="{Binding Background}"
+                                                            CornerRadius="4"
+                                                            Margin="0,2,4,2"
+                                                            Padding="6,2">
+                                                            <ui:TextBlock
+                                                                FontTypography="Caption"
+                                                                Foreground="White"
+                                                                Text="{Binding Label}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+
+                <controls:EmptyState Visibility="{Binding ComparisonResults.Count, Converter={StaticResource ListToVisibility}, ConverterParameter=invert}">
+                    <controls:EmptyState.Style>
+                        <Style TargetType="controls:EmptyState">
+                            <Setter Property="Icon" Value="BranchCompare24" />
+                            <Setter Property="Title" Value="Pick two reports" />
+                            <Setter Property="Message" Value="Choose an older and a newer report, then select Compare." />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding NoDifferences}" Value="True">
+                                    <Setter Property="Icon" Value="CheckmarkCircle24" />
+                                    <Setter Property="Title" Value="No differences" />
+                                    <Setter Property="Message" Value="Both reports list the same permissions." />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:EmptyState.Style>
+                </controls:EmptyState>
+            </StackPanel>
+        </ui:DynamicScrollViewer>
+    </Grid>
+</UserControl>

@@ -1,0 +1,29 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DesignWidth="600"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.ToggleSwitchWithLabel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid ToolTip="{Binding ToggleTooltip, FallbackValue=Toggle ToolTip, RelativeSource={RelativeSource AncestorType=UserControl}}" MinHeight="36" VerticalAlignment="Center">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <ui:TextBlock
+            FontTypography="Body"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+            Margin="0,0,12,0"
+            TextWrapping="Wrap"
+            Text="{Binding ToggleText, FallbackValue=Toggle Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            ToolTip="{Binding ToggleTooltip, FallbackValue=Toggle ToolTip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            VerticalAlignment="Center" />
+        <ui:ToggleSwitch
+            Grid.Column="1"
+            IsChecked="{Binding IsChecked, FallbackValue=false, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            VerticalAlignment="Center" />
+    </Grid>
+</UserControl>

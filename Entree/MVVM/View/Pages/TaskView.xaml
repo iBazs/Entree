@@ -1,0 +1,391 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=vm:TaskViewModel}"
+    d:DesignHeight="1080"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Pages.TaskView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style TargetType="ui:TextBlock" x:Key="FieldLabel">
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style TargetType="StackPanel" x:Key="Field">
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style TargetType="ui:TextBlock" x:Key="Group">
+            <Setter Property="FontTypography" Value="BodyStrong" />
+            <Setter Property="Margin" Value="0,4,0,8" />
+        </Style>
+        <Style
+            BasedOn="{StaticResource DefaultToggleButtonStyle}"
+            TargetType="ToggleButton"
+            x:Key="Choice">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,0,4,4" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid MaxWidth="1200">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <controls:PageHeader
+            Grid.Row="0"
+            Subtitle="Run searches on a schedule with Windows Task Scheduler"
+            Title="Tasks" />
+
+        <StackPanel Grid.Row="1" Margin="24,9">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <ui:Button
+                    Appearance="Secondary"
+                    Command="{Binding RefreshCommand}"
+                    Content="Reload"
+                    Icon="{ui:SymbolIcon ArrowClockwise24}"
+                    Margin="0,0,8,0"
+                    ToolTip="Read the tasks again from Task Scheduler" />
+                <ui:Button
+                    Appearance="Primary"
+                    Command="{Binding AddNewJobCommand}"
+                    Content="New scheduled task"
+                    Icon="{ui:SymbolIcon Add24}" />
+            </StackPanel>
+            <ProgressBar
+                Height="2"
+                IsIndeterminate="True"
+                Margin="0,8,0,0"
+                Visibility="{Binding CanRefresh, Converter={StaticResource InverseBooleanToVisibility}}" />
+        </StackPanel>
+
+        <ScrollViewer
+            Grid.Row="2"
+            HorizontalScrollBarVisibility="Disabled"
+            Padding="{StaticResource PageContentMargin}"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ContentControl
+                    Content="{Binding}"
+                    Focusable="False"
+                    Margin="0,0,0,12"
+                    Visibility="{Binding IsConfigPanelVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate DataType="{x:Type vm:TaskViewModel}">
+                            <Border
+                                Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <Border Style="{StaticResource CardHeaderStrip}">
+                                        <Grid>
+                                            <ui:TextBlock
+                                                FontTypography="BodyStrong"
+                                                Text="New scheduled task"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding IsNewJob, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            <ui:TextBlock
+                                                FontTypography="BodyStrong"
+                                                Text="{Binding EditingJob.Name, StringFormat='{}Edit {0}', FallbackValue=Edit task}"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding IsNewJob, Converter={StaticResource InverseBooleanToVisibility}}" />
+                                            <ui:Button
+                                                Appearance="Transparent"
+                                                Command="{Binding CancelCommand}"
+                                                HorizontalAlignment="Right"
+                                                Icon="{ui:SymbolIcon Dismiss24}"
+                                                ToolTip="Close without saving" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Margin="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition MinWidth="240" Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition MinWidth="240" Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <ui:TextBlock Style="{StaticResource Group}" Text="Task" />
+
+                                            <StackPanel Style="{StaticResource Field}">
+                                                <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Name" />
+                                                <ui:TextBox PlaceholderText="For example Weekly finance shares" Text="{Binding EditingJob.Name, UpdateSourceTrigger=PropertyChanged, FallbackValue=New Task}" />
+                                            </StackPanel>
+
+                                            <StackPanel Style="{StaticResource Field}">
+                                                <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Search configuration file" />
+                                                <controls:PathPicker
+                                                    BrowseCommand="{Binding BrowseSearchFileCommand}"
+                                                    BrowseToolTip="Choose a saved .entree configuration"
+                                                    IsReadOnly="True"
+                                                    Path="{Binding EditingJob.SearchFilePath, Mode=OneWay}"
+                                                    Placeholder="No file selected" />
+                                            </StackPanel>
+
+                                            <StackPanel Style="{StaticResource Field}">
+                                                <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Command" />
+                                                <ui:TextBox
+                                                    FontFamily="Cascadia Mono, Consolas"
+                                                    FontSize="12"
+                                                    IsReadOnly="True"
+                                                    MinHeight="60"
+                                                    Text="{Binding CommandPreview, Mode=OneWay}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Border
+                                            Background="{ui:ThemeResource DividerStrokeColorDefaultBrush}"
+                                            Grid.Column="1"
+                                            Margin="24,0"
+                                            Width="1" />
+
+                                        <StackPanel Grid.Column="2">
+                                            <ui:TextBlock Style="{StaticResource Group}" Text="Schedule" />
+
+                                            <StackPanel Style="{StaticResource Field}">
+                                                <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Repeats" />
+                                                <ComboBox SelectedIndex="{Binding SelectedScheduleTypeIndex, Mode=TwoWay}">
+                                                    <ComboBoxItem Content="One time" />
+                                                    <ComboBoxItem Content="Daily" />
+                                                    <ComboBoxItem Content="Weekly" />
+                                                    <ComboBoxItem Content="Monthly" />
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="12" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Start date" />
+                                                    <DatePicker SelectedDate="{Binding ScheduleDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedDateFormat="Short" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Time (24 h)" />
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <ComboBox
+                                                            ItemsSource="{Binding Hours}"
+                                                            MaxDropDownHeight="240"
+                                                            MinWidth="76"
+                                                            SelectedIndex="{Binding ScheduleHour}"
+                                                            ToolTip="Hour" />
+                                                        <ui:TextBlock
+                                                            FontTypography="BodyStrong"
+                                                            Margin="6,0"
+                                                            Text=":"
+                                                            VerticalAlignment="Center" />
+                                                        <ComboBox
+                                                            ItemsSource="{Binding Minutes}"
+                                                            MaxDropDownHeight="240"
+                                                            MinWidth="76"
+                                                            SelectedIndex="{Binding ScheduleMinute}"
+                                                            ToolTip="Minute" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <StackPanel Visibility="{Binding IsRecurrenceIntervalVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Grid MinHeight="36">
+                                                    <ui:TextBlock Text="Repeat every" VerticalAlignment="Center" />
+                                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                                        <ui:NumberBox
+                                                            ClearButtonEnabled="False"
+                                                            Maximum="99"
+                                                            Minimum="1"
+                                                            SpinButtonPlacementMode="Compact"
+                                                            Value="{Binding RecurrenceInterval, UpdateSourceTrigger=PropertyChanged, FallbackValue=1}"
+                                                            Width="110" />
+                                                        <ui:TextBlock
+                                                            Margin="8,0,0,0"
+                                                            MinWidth="40"
+                                                            Text="{Binding RecurrenceUnit}"
+                                                            VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid MinHeight="36">
+                                                    <ui:TextBlock
+                                                        Text="Same time in every time zone"
+                                                        ToolTip="Run at the same moment worldwide instead of local time"
+                                                        VerticalAlignment="Center" />
+                                                    <ui:ToggleSwitch HorizontalAlignment="Right" IsChecked="{Binding SynchronizeTimeZones}" />
+                                                </Grid>
+                                            </StackPanel>
+                                            <Grid MinHeight="36">
+                                                <ui:TextBlock
+                                                    Text="Run with highest privileges"
+                                                    ToolTip="Saving this needs Entrée to run as administrator"
+                                                    VerticalAlignment="Center" />
+                                                <ui:ToggleSwitch HorizontalAlignment="Right" IsChecked="{Binding EditingJob.RunElevated}" />
+                                            </Grid>
+
+                                            <StackPanel Margin="0,8,0,0" Visibility="{Binding IsWeeklyScheduleVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <ui:TextBlock Style="{StaticResource Group}" Text="On these days" />
+                                                <ItemsControl ItemsSource="{Binding DayCollection}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <UniformGrid Columns="4" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <ToggleButton
+                                                                Content="{Binding Name}"
+                                                                IsChecked="{Binding IsSelected}"
+                                                                Style="{StaticResource Choice}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,8,0,0" Visibility="{Binding IsMonthlyScheduleVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <StackPanel Style="{StaticResource Field}">
+                                                    <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Monthly on" />
+                                                    <ComboBox SelectedIndex="{Binding MonthlyOptionType, Mode=TwoWay}">
+                                                        <ComboBoxItem Content="Days of the month" />
+                                                        <ComboBoxItem Content="A weekday of the month" />
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <StackPanel Style="{StaticResource Field}" Visibility="{Binding IsDayOfMonthOptionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Days of month" />
+                                                    <ItemsControl ItemsSource="{Binding CalendarDayCollection}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <UniformGrid Columns="7" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <ToggleButton
+                                                                    Content="{Binding Value}"
+                                                                    IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                                    Padding="0,4"
+                                                                    Style="{StaticResource Choice}" />
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+
+                                                <Grid Margin="0,0,0,12" Visibility="{Binding IsDayOfWeekOptionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Week" />
+                                                        <ComboBox SelectedIndex="{Binding MonthWeekNumber, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="First" />
+                                                            <ComboBoxItem Content="Second" />
+                                                            <ComboBoxItem Content="Third" />
+                                                            <ComboBoxItem Content="Fourth" />
+                                                            <ComboBoxItem Content="Last" />
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Day" />
+                                                        <ComboBox SelectedIndex="{Binding MonthDayOfWeek, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="Monday" />
+                                                            <ComboBoxItem Content="Tuesday" />
+                                                            <ComboBoxItem Content="Wednesday" />
+                                                            <ComboBoxItem Content="Thursday" />
+                                                            <ComboBoxItem Content="Friday" />
+                                                            <ComboBoxItem Content="Saturday" />
+                                                            <ComboBoxItem Content="Sunday" />
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <ui:TextBlock Style="{StaticResource FieldLabel}" Text="Months" />
+                                                <ItemsControl ItemsSource="{Binding MonthCollection}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <UniformGrid Columns="4" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <ToggleButton
+                                                                Content="{Binding Name}"
+                                                                IsChecked="{Binding IsSelected}"
+                                                                Style="{StaticResource Choice}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border
+                                        Background="{ui:ThemeResource SubtleFillColorTertiaryBrush}"
+                                        CornerRadius="0,0,8,8"
+                                        Padding="16,12">
+                                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                            <ui:Button
+                                                Appearance="Secondary"
+                                                Command="{Binding CancelCommand}"
+                                                Content="Cancel"
+                                                Margin="0,0,8,0" />
+                                            <ui:Button
+                                                Appearance="Primary"
+                                                Command="{Binding SaveTaskCommand}"
+                                                Content="Save task"
+                                                Icon="{ui:SymbolIcon Save24}" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+
+                <ItemsControl ItemsSource="{Binding Jobs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:JobConfigControl />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <controls:EmptyState
+                    Icon="CalendarClock24"
+                    Message="Save a search configuration, then schedule it here to run it automatically."
+                    Title="No scheduled tasks">
+                    <controls:EmptyState.Style>
+                        <Style TargetType="controls:EmptyState">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Jobs.Count}" Value="0" />
+                                        <Condition Binding="{Binding IsConfigPanelVisible}" Value="False" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:EmptyState.Style>
+                    <controls:EmptyState.Action>
+                        <ui:Button
+                            Appearance="Primary"
+                            Command="{Binding AddNewJobCommand}"
+                            Content="New scheduled task"
+                            Icon="{ui:SymbolIcon Add24}" />
+                    </controls:EmptyState.Action>
+                </controls:EmptyState>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

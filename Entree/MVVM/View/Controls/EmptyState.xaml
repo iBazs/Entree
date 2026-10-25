@@ -1,0 +1,42 @@
+﻿<UserControl
+    Background="Transparent"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Controls.EmptyState"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel
+        HorizontalAlignment="Center"
+        Margin="{Binding Spacing, ElementName=Root}"
+        MaxWidth="420"
+        VerticalAlignment="Center">
+        <ui:SymbolIcon
+            FontSize="{Binding IconSize, ElementName=Root}"
+            Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"
+            HorizontalAlignment="Center"
+            Symbol="{Binding Icon, ElementName=Root}" />
+        <ui:TextBlock
+            FontTypography="BodyStrong"
+            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+            Margin="0,12,0,0"
+            Text="{Binding Title, ElementName=Root}"
+            TextAlignment="Center"
+            TextWrapping="Wrap" />
+        <ui:TextBlock
+            FontTypography="Caption"
+            Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"
+            Margin="0,4,0,0"
+            Text="{Binding Message, ElementName=Root}"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Visibility="{Binding Message, ElementName=Root, Converter={StaticResource StringToVisibility}}" />
+        <ContentPresenter
+            Content="{Binding Action, ElementName=Root}"
+            HorizontalAlignment="Center"
+            Margin="0,16,0,0"
+            Visibility="{Binding Action, ElementName=Root, Converter={StaticResource StringToVisibility}}" />
+    </StackPanel>
+</UserControl>

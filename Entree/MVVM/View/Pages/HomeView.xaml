@@ -1,0 +1,70 @@
+﻿<UserControl
+    Background="Transparent"
+    d:DataContext="{d:DesignInstance Type=viewModel:HomeViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="Entree.MVVM.View.Pages.HomeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="clr-namespace:Entree.MVVM.View.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewModel="clr-namespace:Entree.MVVM.ViewModel.Control"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid MaxWidth="1200">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <controls:PageHeader Subtitle="Start a search, review results, compare reports or schedule tasks" Title="Home" />
+
+        <ui:DynamicScrollViewer
+            Grid.Row="1"
+            Padding="18,0,18,18"
+            VerticalScrollBarVisibility="Auto">
+            <UniformGrid Columns="2" VerticalAlignment="Top">
+                <controls:DashboardCard
+                    AccentColor="{StaticResource Primary200}"
+                    AccentColorSecondary="{StaticResource Primary300}"
+                    CardCommand="{Binding NavigateToSearchCommand}"
+                    Description="Choose folders, what to include and how the report is written"
+                    IconSymbol="TextBulletListSquareEdit24"
+                    Title="Create Config" />
+
+                <controls:DashboardCard
+                    AccentColor="{StaticResource Primary200}"
+                    AccentColorSecondary="{StaticResource Primary400}"
+                    CardCommand="{Binding NavigateToSearchResultCommand}"
+                    Description="Follow running searches and open finished reports"
+                    IconSymbol="Search24"
+                    Title="Search" />
+
+                <controls:DashboardCard
+                    AccentColor="{StaticResource Primary200}"
+                    AccentColorSecondary="{StaticResource Primary500}"
+                    CardCommand="{Binding NavigateToCompareCommand}"
+                    Description="See what changed between two reports"
+                    IconSymbol="BranchCompare24"
+                    Title="Compare" />
+
+                <controls:DashboardCard
+                    AccentColor="{StaticResource Primary200}"
+                    AccentColorSecondary="{StaticResource Primary500}"
+                    CardCommand="{Binding NavigateToTaskCommand}"
+                    Description="Run searches on a schedule with Windows Task Scheduler"
+                    IconSymbol="TaskListLtr24"
+                    Title="Tasks" />
+
+                <controls:DashboardCard
+                    AccentColor="{StaticResource Primary200}"
+                    AccentColorSecondary="{StaticResource Primary600}"
+                    CardCommand="{Binding NavigateToSettingsCommand}"
+                    Description="Locations, domains, performance and about"
+                    IconSymbol="Settings24"
+                    Title="Settings" />
+            </UniformGrid>
+        </ui:DynamicScrollViewer>
+    </Grid>
+</UserControl>
