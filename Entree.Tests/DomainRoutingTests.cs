@@ -123,10 +123,12 @@ public sealed class DomainRoutingTests : IDisposable
             Assert.Equal(serves, DomainRouting.Serves(Context(kind),
                                                      new SecurityIdentifier(sid), KnownDomains));
 
-   [Fact]
-   public void Serves_SettingsDomainWithoutSid_ServesAll() =>
-            Assert.True(DomainRouting.Serves(Domain(null), new SecurityIdentifier("S-1-5-32-544"),
-                                            KnownDomains));
+   [Theory]
+   [InlineData("S-1-5-21-7-8-9-1001", true)]
+   [InlineData("S-1-5-32-544", false)]
+   [InlineData("S-1-1-0", false)]
+   public void Serves_SettingsDomainWithoutSid_ServesOnlyDomainAccounts(string sid, bool serves) =>
+            Assert.Equal(serves, DomainRouting.Serves(Domain(null), new SecurityIdentifier(sid), KnownDomains));
 
    [Fact]
    public void GroupSources_WithShareServer_SkipsThisComputer()
@@ -218,6 +220,16 @@ public sealed class DomainRoutingTests : IDisposable
       var sid = new SecurityIdentifier("S-1-5-21-1-2-3-1001");
 
       Assert.Single(DomainRouting.Merge(sid, [(Domain(CorpSid), Named(sid, "CORP", "bob")), (Domain(null), Named(sid, "corp", "BOB"))]));
+   }
+
+   [Fact]
+   public void DirectoryAnswered_OnlyForAResolvedDomainAnswer()
+   {
+      var sid = new SecurityIdentifier("S-1-5-21-1-2-3-1001");
+
+      Assert.True(DomainRouting.DirectoryAnswered([(Domain(CorpSid), Named(sid, "CORP", "bob"))]));
+      Assert.False(DomainRouting.DirectoryAnswered([(Domain(CorpSid), new AccountInfo(sid))]));
+      Assert.False(DomainRouting.DirectoryAnswered([(Server, Named(sid, "FS01", "bob"))]));
    }
 
    [Fact]

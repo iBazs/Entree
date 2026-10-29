@@ -22,6 +22,8 @@ public class ExcelHandler(
          List<AccountInfo[]> groupsList,
          ConcurrentDictionary<SecurityIdentifier, List<AccountInfo>> accountsDictionary)
 {
+   private static readonly XlsxStyle DateStyle = XlsxStyle.Default.With(XlsxNumberFormat.ShortDateTime);
+
    private          CancellationToken                             _cToken;
    private          HashSet<SecurityIdentifier>                   _duplicateSids = [];
 
@@ -100,7 +102,8 @@ public class ExcelHandler(
 
       sheet.Write(accessType?.ToString());
 
-      sheet.Write(entry.LastWriteTime, XlsxStyle.Default.With(XlsxNumberFormat.ShortDateTime));
+      if (entry.LastWriteTime == DateTime.MinValue) sheet.Write();
+      else sheet.Write(entry.LastWriteTime, DateStyle);
       sheet.Write(entry.Error);
    }
 

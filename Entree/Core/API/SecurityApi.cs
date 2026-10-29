@@ -38,7 +38,7 @@ public sealed class SecurityApi : IDisposable
 
    private ImmutableArray<DomainContext>  Domains    { get; }
    private FrozenSet<SecurityIdentifier>  DomainSids { get; }
-   private ConcurrentDictionary<string, bool> GroupsDone { get; } = [];
+   private ConcurrentDictionary<SecurityIdentifier, bool> GroupsDone { get; } = [];
    private ConcurrentDictionary<SecurityIdentifier, ConcurrentBag<AccountInfo>> AccountCache { get; } = [];
    private ConcurrentDictionary<SecurityIdentifier, bool> SidValues { get; } = [];
    private ConcurrentDictionary<PrincipalContext, string> NetBiosName { get; } = [];
@@ -72,12 +72,7 @@ public sealed class SecurityApi : IDisposable
    private SecurityInfo ReadSecurity(string path, bool isDirectory, bool isOwner, bool isInherited)
    {
       var (descriptor, error) = SecurityDescriptorReader.Read(path, isOwner);
-      if (descriptor is null)
-      {
-         var exception = SecurityDescriptorReader.ToException(error);
-         Log.Warning("Failed to get security information for {Path}: {Message}", path, exception.Message);
-         return SecurityInfo.Failed(GetErrorType(exception));
-      }
+      if (descriptor is null) return SecurityInfo.Failed(GetErrorType(SecurityDescriptorReader.ToException(error)));
 
       var key = new DescriptorKey(descriptor, isDirectory);
       if (DescriptorCache.TryGetValue(key, out var cached)) return cached;
@@ -130,41 +125,37 @@ public sealed class SecurityApi : IDisposable
       public override int  GetHashCode()       => _hash;
    }
 
-   private ConcurrentBag<AccountInfo[]> ProcessGroupMembers(GroupPrincipal group, AccountInfo account)
+   private List<AccountInfo[]> ProcessGroupMembers(GroupPrincipal group, AccountInfo account)
    {
-      var groupMembers = new ConcurrentBag<AccountInfo[]>();
-      var currentGroup = new ConcurrentBag<AccountInfo> { account };
-
+      var nested   = new List<AccountInfo[]>();
+      var members  = new List<AccountInfo>();
+      var complete = true;
       try
       {
-         Parallel.ForEach(group.Members, _parallelOptions, member =>
+         using var enumerator = group.Members.GetEnumerator();
+         while (enumerator.MoveNext())
          {
-            try
-            {
-               var memberInfo = CreateAccountInfo(member);
-               currentGroup.Add(memberInfo);
-
-               if (memberInfo.Type != AccountType.Group) return;
-               foreach (var subGroupMembers in GroupExplore(memberInfo)) groupMembers.Add(subGroupMembers);
-            }
-            catch (Exception ex)
-            {
-               Log.Error("Error processing group member {MemberName}: {Message}",
-                         member.Name ?? "Unknown", ex.Message);
-            }
-            finally
-            {
-               member.Dispose();
-            }
-         });
+            _parallelOptions.CancellationToken.ThrowIfCancellationRequested();
+            using var member = enumerator.Current;
+            var info = member.Sid is { } sid ? GetAccountInfos(sid)[0] : CreateAccountInfo(member);
+            members.Add(info);
+            if (info.Type == AccountType.Group) nested.AddRange(GroupExplore(info));
+         }
       }
-      catch (Exception ex)
+      catch (Exception ex) when (ex is not OperationCanceledException)
       {
-         Log.Error("Error processing group {GroupName}: {Message}", account.Name, ex.Message);
+         complete = false;
+         Log.Warning("Could not read every member of {GroupName}: {Message}", account.FullName, ex.Message);
       }
 
-      groupMembers.Add(currentGroup.ToArray());
-      return groupMembers;
+      if (!complete) MarkLimited(account);
+      nested.Add([..members, account]);
+      return nested;
+   }
+
+   private static void MarkLimited(AccountInfo account)
+   {
+      if (account.State == AccountState.Enabled) account.State = AccountState.Limited;
    }
 
    private IdentityReference? GetOwner(FileSystemSecurity fss)
@@ -211,7 +202,7 @@ public sealed class SecurityApi : IDisposable
    public IEnumerable<AccountInfo[]> GetGroupMembers(AccountInfo accountInfo) =>
             accountInfo.Type == AccountType.Group ? GroupExplore(accountInfo) : [];
 
-   private ConcurrentBag<AccountInfo[]> GroupExplore(AccountInfo account)
+   private IReadOnlyList<AccountInfo[]> GroupExplore(AccountInfo account)
    {
       if (string.IsNullOrEmpty(account.Name) || string.IsNullOrEmpty(account.Domain))
          return [];
@@ -223,11 +214,13 @@ public sealed class SecurityApi : IDisposable
          account.Domain = domain;
       }
 
-      if (account.Name == null || !GroupsDone.TryAdd(account.FullName, true))
+      if (account.Name == null || !GroupsDone.TryAdd(account.Sid, true))
          return [];
 
       using var group = FindGroup(account);
-      return group == null ? [[account]] : ProcessGroupMembers(group, account);
+      if (group is not null) return ProcessGroupMembers(group, account);
+      MarkLimited(account);
+      return [[account]];
    }
 
    private GroupPrincipal? FindGroup(AccountInfo account)
@@ -268,8 +261,11 @@ public sealed class SecurityApi : IDisposable
    {
       if (UnixIdentity.TryDescribe(sid, out var unixAccount)) return [unixAccount];
 
-      var answers = Serving(sid).SelectMany(d => Answers(sid, d).Select(info => (d, info))).ToList();
-      var merged  = DomainRouting.Merge(sid, answers);
+      var answers = new List<(DomainContext Source, AccountInfo Info)>();
+      foreach (var domain in Serving(sid))
+         if (domain is not DomainContext.Local || !DomainRouting.DirectoryAnswered(answers))
+            answers.AddRange(Answers(sid, domain).Select(info => (domain, info)));
+      var merged = DomainRouting.Merge(sid, answers);
       return merged.Count == 0 ? [new AccountInfo(sid)] : [..merged];
    }
 

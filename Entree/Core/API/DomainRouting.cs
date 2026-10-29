@@ -95,13 +95,16 @@ internal static class DomainRouting
             {
                      DomainContext.Local                => true,
                      DomainContext.Server               => IsBuiltin(sid) || sid.AccountDomainSid is { } owner && !domainSids.Contains(owner),
-                     DomainContext.Domain { Sid: null } => true,
+                     DomainContext.Domain { Sid: null } => sid.AccountDomainSid is not null,
                      DomainContext.Domain other         => other.Sid == sid.AccountDomainSid,
                      _                                  => false
             };
 
    public static IEnumerable<DomainContext> GroupSources(IReadOnlyList<DomainContext> serving) =>
             serving.Any(d => d is DomainContext.Server) ? serving.Where(d => d is not DomainContext.Local) : serving;
+
+   public static bool DirectoryAnswered(IEnumerable<(DomainContext Source, AccountInfo Info)> answers) =>
+            answers.Any(a => a.Source is DomainContext.Domain && a.Info.Name is not null);
 
    public static IReadOnlyList<AccountInfo> Merge(SecurityIdentifier sid,
                                                   IReadOnlyList<(DomainContext Source, AccountInfo Info)> answers)

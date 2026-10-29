@@ -175,7 +175,7 @@ public class CompareHandler(
    {
       if (!original.TryGetValue(group[0].Path, out var originals))
          return group.Select(row => FromRow(row, "New")).ToList();
-      return group.Select(row => CompareFileSystemItem(original, row))
+      return group.Select((row, index) => CompareFileSystemItem(original, row, index == 0))
                   .OfType<ComparedFileSystemStructResult>()
                   .Concat(originals.Where(o => o.Identity is not null &&
                                                !group.Any(c => c.Identity == o.Identity && c.AccessType == o.AccessType))
@@ -213,7 +213,7 @@ public class CompareHandler(
 
    internal ComparedFileSystemStructResult? CompareFileSystemItem(
             Dictionary<string, List<FlatFileSystemStruct>> originalFileLookup,
-            FlatFileSystemStruct comparisonItem)
+            FlatFileSystemStruct comparisonItem, bool firstRowOfPath = true)
    {
       if (string.IsNullOrEmpty(comparisonItem.Path)) return null;
 
@@ -269,7 +269,7 @@ public class CompareHandler(
          }
       }
 
-      if (string.IsNullOrEmpty(matchingOwnerStruct.Path))
+      if (firstRowOfPath && string.IsNullOrEmpty(matchingOwnerStruct.Path))
       {
          differences.Add("New Owner");
          kind            |= DifferenceKind.Owner;
@@ -281,7 +281,7 @@ public class CompareHandler(
          result.Owner = matchingOwnerStruct.Owner;
       }
 
-      if (!Equals(comparisonItem.FileAttributes, primaryOriginal.FileAttributes))
+      if (firstRowOfPath && !Equals(comparisonItem.FileAttributes, primaryOriginal.FileAttributes))
       {
          differences.Add("New Attributes");
          kind                          |= DifferenceKind.Attributes;
@@ -293,7 +293,7 @@ public class CompareHandler(
          result.FileEntryAttributes = primaryOriginal.FileAttributes;
       }
 
-      if (primaryOriginal.LastWriteTime != comparisonItem.LastWriteTime)
+      if (firstRowOfPath && primaryOriginal.LastWriteTime != comparisonItem.LastWriteTime)
       {
          differences.Add("Date Changed");
          kind                    |= DifferenceKind.Date;

@@ -54,6 +54,20 @@ public class CompareHandlerTests
    }
 
    [Fact]
+   public void CompareFileSystemItem_PathChangesOnlyOnTheFirstRow()
+   {
+      const string path = @"C:\data";
+      var originals = new Dictionary<string, List<FlatFileSystemStruct>>
+                      {
+                               [path] = [Ace(path, OwnerOld, IdentityA, FileSystemRights.Read)]
+                      };
+      var comparison = Ace(path, OwnerNew, IdentityA, FileSystemRights.Read);
+
+      Assert.Contains("New Owner", NewHandler().CompareFileSystemItem(originals, comparison)!.Difference);
+      Assert.Null(NewHandler().CompareFileSystemItem(originals, comparison, false));
+   }
+
+   [Fact]
    public void CompareFileSystemItem_IdenticalEntry_ReturnsNull()
    {
       const string path = @"C:\data";

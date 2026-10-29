@@ -19,7 +19,7 @@ public class AccountInfo(
    public string?            Name   { get; set; }  = name;
    public AccountType        Type   { get; }       = type;
    public SecurityIdentifier Sid    { get; }       = sid;
-   public AccountState       State  { get; init; } = accountState;
+   public AccountState       State  { get; set; }  = accountState;
    public string?            Error  { get; }       = error;
 
    public bool IsEnabled    => State == AccountState.Enabled;

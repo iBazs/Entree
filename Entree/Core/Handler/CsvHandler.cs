@@ -22,7 +22,7 @@ public class CsvHandler(
          List<AccountInfo[]> groupsList,
          ConcurrentDictionary<SecurityIdentifier, List<AccountInfo>> accountsDictionary)
 {
-   private const CompressionLevel EntryCompression = CompressionLevel.SmallestSize;
+   private const CompressionLevel EntryCompression = CompressionLevel.Optimal;
 
    private CancellationToken _cToken;
 
@@ -79,7 +79,9 @@ public class CsvHandler(
             identity.Equals(ExportData.NullSid) ? string.Empty : identity.ToString(),
             rights == 0 ? string.Empty : rights.ToString(),
             type?.ToString() ?? string.Empty,
-            entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            entry.LastWriteTime == DateTime.MinValue
+                     ? string.Empty
+                     : entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
             entry.Error ?? string.Empty
    ];
 

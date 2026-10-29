@@ -19,12 +19,13 @@ public static class AclMatrix
       var columns     = sids.Select((sid, index) => (sid, index)).ToDictionary(x => x.sid, x => x.index);
       var bySecurity  = new Dictionary<SecurityInfo, AccessType[]>(ReferenceEqualityComparer.Instance);
       var directories = new Dictionary<string, AccessType[]>(StringComparer.Ordinal);
+      var rows        = new Dictionary<AccessType[], AccessType[]>(RowComparer.Instance);
 
       AccessType[] AccessOf(FileSystemStruct entry, bool isDirectory)
       {
          if (directories.TryGetValue(entry.Path, out var known)) return known;
          if (!bySecurity.TryGetValue(entry.Security, out var access))
-            bySecurity[entry.Security] = access = Row(entry, columns);
+            bySecurity[entry.Security] = access = Intern(rows, Row(entry, columns));
          if (isDirectory) directories.TryAdd(entry.Path, access);
          return access;
       }
@@ -46,6 +47,27 @@ public static class AclMatrix
       for (var folder = Path.GetDirectoryName(path); folder is not null; folder = Path.GetDirectoryName(folder))
          if (directories.TryGetValue(folder, out var access)) return access;
       return [];
+   }
+
+   private static AccessType[] Intern(Dictionary<AccessType[], AccessType[]> rows, AccessType[] row)
+   {
+      if (rows.TryGetValue(row, out var known)) return known;
+      rows[row] = row;
+      return row;
+   }
+
+   private sealed class RowComparer : IEqualityComparer<AccessType[]>
+   {
+      public static readonly RowComparer Instance = new();
+
+      public bool Equals(AccessType[]? x, AccessType[]? y) => x.AsSpan().SequenceEqual(y);
+
+      public int GetHashCode(AccessType[] row)
+      {
+         var hash = new HashCode();
+         foreach (var access in row) hash.Add(access);
+         return hash.ToHashCode();
+      }
    }
 
    private static AccessType[] Row(FileSystemStruct entry, Dictionary<SecurityIdentifier, int> columns)
