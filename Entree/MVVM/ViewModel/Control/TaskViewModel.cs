@@ -108,6 +108,7 @@ public class TaskViewModel : Core.BaseClass.ViewModel
    private void AddNewJob()
    {
       ResetDateTime();
+      ResetSchedule();
       IsNewJob      = true;
       _originalName = null;
       var newJob = new Job
@@ -123,6 +124,21 @@ public class TaskViewModel : Core.BaseClass.ViewModel
       EditingJob           = new JobViewModel(newJob);
       IsConfigPanelVisible = true;
       UpdateCommandPreview();
+   }
+
+   private void ResetSchedule()
+   {
+      var today = DateTime.Now;
+      SelectedScheduleTypeIndex = 0;
+      RecurrenceInterval        = 1;
+      SynchronizeTimeZones      = false;
+      MonthlyOptionType         = 0;
+      DayOfMonth                = today.Day;
+      MonthWeekNumber           = 0;
+      MonthDayOfWeek            = 0;
+      ApplySelection(DayCollection, i => (int)today.DayOfWeek == i);
+      ApplySelection(MonthCollection, i => today.Month - 1 == i);
+      ApplySelection(CalendarDayCollection, i => today.Day == i + 1);
    }
 
    private void EditJob(object obj)

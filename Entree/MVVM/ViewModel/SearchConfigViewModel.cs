@@ -319,15 +319,7 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
 
    public ExportAs ExportAs => SearchConfig.ExportAs;
 
-   public ObservableCollection<DomainContext> Domains
-   {
-      get => SearchConfig.Domains;
-      private init
-      {
-         SearchConfig.Domains = value;
-         OnPropertyChanged();
-      }
-   }
+   public ObservableCollection<DomainContext> Domains => SearchConfig.Domains;
 
    public ObservableCollection<string> ExcludedAccounts
    {
@@ -424,6 +416,8 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
          _backgroundTimer.Reset();
          _backgroundTimer.Start();
          _timer.Start();
+         OnPropertyChanged(nameof(ElapsedTime));
+         OnPropertyChanged(nameof(DetailedTimeInfo));
       });
    }
 
@@ -432,9 +426,16 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
       _backgroundTimer.Stop();
       _timer?.Stop();
       _endTime = DateTime.Now;
-      if (_timer == null) return;
-      _timer.Tick -= TimerOnTick;
-      _timer      =  null;
+      if (_timer != null)
+      {
+         _timer.Tick -= TimerOnTick;
+         _timer      =  null;
+      }
+
+      if (_startTime is null) return;
+      _elapsedTime = TimeSpan.FromSeconds(Math.Floor(_backgroundTimer.Elapsed.TotalSeconds));
+      OnPropertyChanged(nameof(ElapsedTime));
+      OnPropertyChanged(nameof(DetailedTimeInfo));
    }
 
    private void TimerOnTick(object? sender, EventArgs e)
@@ -459,9 +460,9 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
    private SearchProgress.Snapshot _shownProgress;
 
    public string ProgressText =>
-            _shownProgress.Phase.Contains("Reading folders")
+            _shownProgress.Phase?.Contains("Reading folders") == true
                      ? $"{_shownProgress.Phase} {_shownProgress.Items:N0} items in {_shownProgress.Folders:N0} folders"
-                     : _shownProgress.Phase;
+                     : _shownProgress.Phase ?? string.Empty;
 
    public string CurrentFolder => _shownProgress.CurrentFolder ?? string.Empty;
 
@@ -513,7 +514,6 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
                                                     ShowGroups          = ShowGroups,
                                                     StringExportAs      = StringExportAs,
                                                     OpenResult          = OpenResult,
-                                                    ExcludedAccounts    = [.. ExcludedAccounts],
-                                                    Domains             = [.. Domains]
+                                                    ExcludedAccounts    = [.. ExcludedAccounts]
                                            };
 }

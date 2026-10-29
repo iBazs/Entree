@@ -60,7 +60,7 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
       TryCancel(tokenSource);
       OnUi(() =>
       {
-         if (SearchConfigs.FirstOrDefault(x => x.Id == id) is { } config) config.IsCancelled = true;
+         if (SearchConfigs.FirstOrDefault(x => x.Id == id) is { IsFinished: false } config) config.IsCancelled = true;
       });
    }
 
@@ -222,7 +222,6 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
          CancelConfigs.TryRemove(searchConfig.Id, out _);
          cTokenSource.Dispose();
          foreach (var domain in searchConfig.Domains) DomainRouting.Directory(domain)?.Dispose();
-         OnUi(searchConfig.Domains.Clear);
       }
 
       return !searchConfig.IsCancelled && !searchConfig.IsError;
