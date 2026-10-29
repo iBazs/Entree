@@ -29,12 +29,7 @@ public class AppSettings : IAppSettings
 {
    public string AppLogPath { get; set; } = Path.Combine(PathHelper.DataDirectory, "Log");
 
-   public string AppResultPath { get; set; } = Path.Combine(
-                                                            Environment.GetFolderPath(Environment.SpecialFolder
-                                                                           .MyDocuments),
-                                                            "Entree",
-                                                            "Results"
-                                                           );
+   public string AppResultPath { get; set; } = PathHelper.DefaultResultsDirectory;
 
    public              int           ThreadLimit { get; set; } = (int)(Environment.ProcessorCount * 1.5);
    [JsonIgnore] public LogEventLevel LogLevel    => LogEventLevel.Information;

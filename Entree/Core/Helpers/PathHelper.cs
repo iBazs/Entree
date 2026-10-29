@@ -39,9 +39,24 @@ public static class PathHelper
       }
       catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
       {
-         var fallback = WriteableBaseDirectory();
+         var fallback = FallbackResultsDirectory();
          Log.Error("Cannot use save folder {Path}, writing to {Fallback} instead: {Message}", path, fallback, ex.Message);
          return fallback;
+      }
+   }
+
+   public static string DefaultResultsDirectory { get; } =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Entree", "Results");
+
+   private static string FallbackResultsDirectory()
+   {
+      try
+      {
+         return Directory.CreateDirectory(DefaultResultsDirectory).FullName;
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+      {
+         return Path.GetTempPath();
       }
    }
 
@@ -85,12 +100,22 @@ public static class PathHelper
          return;
       }
 
+      if (OpenWith(filePath!, Directory.Exists(filePath)) is not { } start)
+      {
+         Log.Warning("Only folders and report files are opened, not {FilePath}", filePath);
+         return;
+      }
+
       Log.Debug("Opening path: {FilePath}", filePath);
-      using var openProcess = new Process();
-      openProcess.StartInfo.FileName        = filePath;
-      openProcess.StartInfo.UseShellExecute = true;
-      _                                     = openProcess.Start();
+      using var openProcess = Process.Start(start);
    }
+
+   private static readonly HashSet<string> ReportExtensions = new(StringComparer.OrdinalIgnoreCase) { ".xlsx", ".zip", ".csv" };
+
+   internal static ProcessStartInfo? OpenWith(string path, bool isDirectory) =>
+            isDirectory                                     ? new ProcessStartInfo("explorer.exe") { ArgumentList = { path } }
+            : ReportExtensions.Contains(Path.GetExtension(path)) ? new ProcessStartInfo(path) { UseShellExecute = true }
+                                                                 : null;
 
    public static string? ValidateAndNormalizePath(string? path)
    {
