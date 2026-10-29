@@ -52,15 +52,18 @@ public class CompareService(IAppSettings appSettings) : ICompareService
 
          var directory = PathHelper.EnsureDirectoryExists(appSettings.AppResultPath);
 
-         var fileExtension  = exportAsXlsx ? ".xlsx" : ".csv";
-         var outputFileName = PathHelper.GenerateUniqueFileName("Comparison_Results", fileExtension, directory);
-         var outputFilePath = Path.Combine(directory, outputFileName);
+         var outputFilePath = PathHelper.ReserveUniqueFile("Comparison_Results", exportAsXlsx ? ".xlsx" : ".csv", directory);
 
-         var isSuccess = await Task.Run(async () =>
-                                                 await _compareHandler.Export(outputFilePath,
-                                                                              exportAsXlsx,
-                                                                              cancellationToken),
-                                        cancellationToken);
+         var isSuccess = false;
+         try
+         {
+            isSuccess = await Task.Run(async () => await _compareHandler.Export(outputFilePath, exportAsXlsx, cancellationToken),
+                                       cancellationToken);
+         }
+         finally
+         {
+            if (!isSuccess) PathHelper.TryDelete(outputFilePath);
+         }
 
          return isSuccess ? outputFilePath : string.Empty;
       }

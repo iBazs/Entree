@@ -36,9 +36,16 @@ public static class AclMatrix
       {
          var entry  = entries[i];
          var access = AccessOf(entry, entry.FileEntryAttributes.HasFlag(FileAttributes.Directory));
-         var parent = directories.GetValueOrDefault(Path.GetDirectoryName(entry.Path) ?? entry.Path, []);
-         if (!access.AsSpan().SequenceEqual(parent)) yield return new ReportHelper.MatrixRow(entry.Path, access);
+         if (!access.AsSpan().SequenceEqual(NearestAncestor(directories, entry.Path)))
+            yield return new ReportHelper.MatrixRow(entry.Path, access);
       }
+   }
+
+   private static AccessType[] NearestAncestor(Dictionary<string, AccessType[]> directories, string path)
+   {
+      for (var folder = Path.GetDirectoryName(path); folder is not null; folder = Path.GetDirectoryName(folder))
+         if (directories.TryGetValue(folder, out var access)) return access;
+      return [];
    }
 
    private static AccessType[] Row(FileSystemStruct entry, Dictionary<SecurityIdentifier, int> columns)

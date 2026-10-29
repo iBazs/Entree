@@ -136,7 +136,7 @@ public class StartupController(
       _accepting++;
       try
       {
-         return await SearchAsync(rest, silent, false);
+         return await SearchAsync(rest, silent, silent);
       }
       finally
       {
@@ -292,8 +292,9 @@ public class StartupController(
                vm.OriginalFilePath = sourcePath;
                vm.NewFilePath      = newPath;
                await vm.CompareAsync();
+               if (!vm.IsExportable) return;
                await vm.ExportResultsAsync(exportAsXlsx ? "xlsx" : "csv");
-               PathHelper.OpenFile(vm.OutputFilePath);
+               if (File.Exists(vm.OutputFilePath)) PathHelper.OpenFile(vm.OutputFilePath);
             });
          }
       }

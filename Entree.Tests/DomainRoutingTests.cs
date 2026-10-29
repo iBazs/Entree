@@ -213,6 +213,14 @@ public sealed class DomainRoutingTests : IDisposable
    }
 
    [Fact]
+   public void Merge_SameDomainTwice_ShowsOne()
+   {
+      var sid = new SecurityIdentifier("S-1-5-21-1-2-3-1001");
+
+      Assert.Single(DomainRouting.Merge(sid, [(Domain(CorpSid), Named(sid, "CORP", "bob")), (Domain(null), Named(sid, "corp", "BOB"))]));
+   }
+
+   [Fact]
    public void Merge_SeveralDomains_ShowsAll()
    {
       var sid = new SecurityIdentifier("S-1-5-21-1-2-3-1001");

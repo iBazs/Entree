@@ -215,21 +215,9 @@ internal sealed class SearchController : IDisposable
 
    private static (string FullPath, bool IsXlsx) CreateExportParameters(SearchConfigViewModel searchConfig)
    {
-      var saveFileFolder = PathHelper.EnsureDirectoryExists(searchConfig.SaveDirectory);
-      var folderName = string.IsNullOrEmpty(Path.GetFileName(searchConfig.SearchDirectory))
-               ? Path.GetPathRoot(searchConfig.SearchDirectory)?.TrimEnd('\\', ':') ?? "Result"
-               : Path.GetFileName(searchConfig.SearchDirectory);
-
-      var saveFileName = PathHelper.GenerateUniqueFileName(
-                                                           folderName,
-                                                           searchConfig.ExportAs == ExportAs.Xlsx
-                                                                    ? ".xlsx"
-                                                                    : ".zip",
-                                                           saveFileFolder);
-
-      var fullPath = Path.Combine(saveFileFolder, saveFileName);
-
-      return (fullPath, searchConfig.ExportAs == ExportAs.Xlsx);
+      var isXlsx = searchConfig.ExportAs == ExportAs.Xlsx;
+      return (PathHelper.ReserveUniqueFile(PathHelper.ReportName(searchConfig.SearchDirectory), isXlsx ? ".xlsx" : ".zip",
+                                           PathHelper.EnsureDirectoryExists(searchConfig.SaveDirectory)), isXlsx);
    }
 }
 

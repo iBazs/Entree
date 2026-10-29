@@ -109,7 +109,8 @@ internal static class DomainRouting
       var resolved = answers.Where(a => a.Info.Name is not null).ToList();
       if (resolved.Count == 0) return answers.Select(a => a.Info).Take(1).ToList();
 
-      var remote = resolved.Where(a => a.Source is not DomainContext.Local).Select(a => a.Info).ToList();
+      var remote = resolved.Where(a => a.Source is not DomainContext.Local).Select(a => a.Info)
+                           .DistinctBy(a => a.FullName, StringComparer.OrdinalIgnoreCase).ToList();
       var local  = resolved.Where(a => a.Source is DomainContext.Local).Select(a => a.Info);
       if (remote.Count == 0) return local.ToList();
 

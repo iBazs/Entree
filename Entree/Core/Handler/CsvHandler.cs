@@ -30,7 +30,7 @@ public class CsvHandler(
    {
       _cToken = cancellationToken;
       cancellationToken.ThrowIfCancellationRequested();
-      using (var zipArchive = ZipFile.Open(outputPath, ZipArchiveMode.Create))
+      using (var zipArchive = new ZipArchive(File.Create(outputPath), ZipArchiveMode.Create))
       {
          AddEntry(zipArchive, ExportData.RawDataCsv, WriteRawDataCsvWithSep);
          if (searchConfig.ShowMatrix) AddEntry(zipArchive, "Matrix.csv", WriteMatrixCsvWithSep);

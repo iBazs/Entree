@@ -30,42 +30,36 @@ public static class PathHelper
    {
       try
       {
-         if (string.IsNullOrWhiteSpace(path) || string.IsNullOrEmpty(path))
-            throw new ArgumentNullException(nameof(path));
-         if (Path.HasExtension(path)) path = Path.GetDirectoryName(path);
-         if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException(nameof(path));
          return Directory.CreateDirectory(path).FullName;
       }
-      catch (ArgumentNullException)
+      catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
       {
-         Log.Error("Save directory was empty or incorrect.");
-         Log.Error("Changed save location to default at {CurrentDirectory}", Environment.CurrentDirectory);
-         return Environment.CurrentDirectory;
-      }
-      catch (UnauthorizedAccessException)
-      {
-         Log.Error("Couldn't create directory at {Path}", path);
-         Log.Error("Changed save location to default at {CurrentDirectory}", Environment.CurrentDirectory);
-         return Environment.CurrentDirectory;
+         var fallback = WriteableBaseDirectory();
+         Log.Error("Cannot use save folder {Path}, writing to {Fallback} instead: {Message}", path, fallback, ex.Message);
+         return fallback;
       }
    }
 
-   public static string GenerateUniqueFileName(string? baseFileName, string extension, string? savePath)
+   public static string ReportName(string? searchDirectory) =>
+            (searchDirectory ?? string.Empty).Split(['\\', '/', ':'], StringSplitOptions.RemoveEmptyEntries) is [.., var last] &&
+            last != "?"
+                     ? last
+                     : "Result";
+
+   public static string ReserveUniqueFile(string baseName, string extension, string folder)
    {
-      var dateStamp        = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-      var baseNameWithDate = $"{baseFileName}_{dateStamp}";
-      savePath ??= EnsureDirectoryExists(savePath);
-      var fullPath = Path.Combine(savePath, $"{baseNameWithDate}{extension}");
-
-      var counter = 1;
-      while (File.Exists(fullPath))
+      var stem = $"{baseName}_{DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+      for (var counter = 0;; counter++)
       {
-         var newFileName = $"{baseNameWithDate} ({counter}){extension}";
-         fullPath = Path.Combine(savePath, newFileName);
-         counter++;
+         var path = Path.Combine(folder, counter == 0 ? $"{stem}{extension}" : $"{stem} ({counter}){extension}");
+         try
+         {
+            using (new FileStream(path, FileMode.CreateNew, FileAccess.Write)) { }
+            return path;
+         }
+         catch (IOException) when (File.Exists(path)) { }
       }
-
-      return Path.GetFileName(fullPath);
    }
 
    public static void OpenFile(string? filePath)
