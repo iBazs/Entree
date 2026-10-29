@@ -3,7 +3,9 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.DirectoryServices.AccountManagement;
 using System.IO;
+using System.Security.Principal;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,6 +14,7 @@ using System.Windows.Threading;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using Wpf.Ui.Markup;
+using Entree.Core.API;
 using Entree.Core.BaseClass;
 using Entree.Core.Helpers;
 using Entree.MVVM.Model;
@@ -107,10 +110,24 @@ public class ViewRenderTests(ITestOutputHelper output)
 
    private static SearchViewModel SearchViewModelWithItems()
    {
+      var running = new SearchConfigViewModel(@"\\fileserver\finance", @"C:\Reports", SearchFor.FoldersAndFiles, 3,
+                                              excludedAccounts: ["BUILTIN\\Administrators"]);
+      running.Domains.Add(new DomainContext.Server("fileserver", null));
+      running.Domains.Add(new DomainContext.Domain("corp.example.com", new PrincipalContext(ContextType.Machine),
+                                                   new SecurityIdentifier("S-1-5-21-10-20-30"), "CORP"));
+      running.Domains.Add(new DomainContext.Domain("partner.example.com", new PrincipalContext(ContextType.Machine),
+                                                   new SecurityIdentifier("S-1-5-21-40-50-60"), "PARTNER"));
+      running.Progress.Phase = "Reading folders";
+      foreach (var folder in new[] { "Budget", "Payroll", @"Payroll\2026" })
+         running.Progress.EnterFolder($@"\\fileserver\finance\{folder}");
+      for (var i = 0; i < 18_204; i++) running.Progress.ItemFound();
+      running.IsRunning = true;
+
+      var done = new SearchConfigViewModel(@"D:\Projects", @"C:\Reports", SearchFor.Folders, 1, showMatrix: false) { IsDone = true };
       var service = new FakeSearchService();
-      service.SearchConfigs.Add(new SearchConfigViewModel(@"\\fileserver\finance", @"C:\Reports", SearchFor.FoldersAndFiles, 3,
-                                                          excludedAccounts: ["BUILTIN\\Administrators"]));
-      service.SearchConfigs.Add(new SearchConfigViewModel(@"D:\Projects", @"C:\Reports", SearchFor.Folders, 1, showMatrix: false));
+      service.SearchConfigs.Add(running);
+      service.SearchConfigs.Add(done);
+      service.SearchConfigs.Add(new SearchConfigViewModel(@"Z:\Shared", @"C:\Reports", SearchFor.Folders));
       return new SearchViewModel(service, new FakeNavigationService());
    }
 

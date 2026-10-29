@@ -28,6 +28,13 @@ jobs:
       - name: Test
         run: dotnet test Entree.sln -c Release --logger "console;verbosity=normal"
 
+      - name: Screens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screens
+          path: Entree.Tests/bin/Release/net8.0-windows10.0.18362.0/screens
+
       - name: Lab scripts parse
         shell: pwsh
         run: |
