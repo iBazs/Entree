@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32.TaskScheduler;
 using Serilog;
 using Wpf.Ui.Controls;
@@ -143,33 +145,94 @@ public class JobViewModel : Core.BaseClass.ViewModel
    public RelayCommand OpenSearchFileCommand { get; }
    public RelayCommand RunNowCommand         { get; }
 
+   private static readonly TimeSpan ClickCooldown = TimeSpan.FromSeconds(1);
+   private static readonly TimeSpan PollInterval  = TimeSpan.FromSeconds(2);
+
+   private DateTime         _lastControl = DateTime.MinValue;
+   private DispatcherTimer? _poll;
+
    private void Run(object obj)
    {
+      var now = DateTime.Now;
+      if (now - _lastControl < ClickCooldown) return;
+      _lastControl = now;
       if (IsRunning) RunStop();
       else RunNow();
    }
 
-   private void RunNow() => Control(task => task.Run(), true, "Running", "start");
+   private void RunNow()
+   {
+      if (!Control(task => task.Run(), true, "Running", "start")) return;
+      _poll?.Stop();
+      _poll = new DispatcherTimer(PollInterval, DispatcherPriority.Background, (_, _) => Refresh(), Dispatcher.CurrentDispatcher);
+      _poll.Start();
+   }
 
-   private void RunStop() => Control(task => task.Stop(), false, "Ready", "stop");
+   private void RunStop()
+   {
+      _poll?.Stop();
+      Control(task => task.Stop(), false, "Ready", "stop");
+   }
 
-   private void Control(Action<Microsoft.Win32.TaskScheduler.Task> action, bool isRunning, string status, string verb)
+   private void Refresh()
+   {
+      try
+      {
+         using var ts   = new TaskService();
+         var       task = FindTask(ts);
+         if (task?.State == TaskState.Running) return;
+         IsRunning = false;
+         if (task is null) return;
+         Status      = task.State.ToString();
+         NextRunTime = task.NextRunTime == DateTime.MinValue ? null : task.NextRunTime;
+      }
+      catch (Exception ex)
+      {
+         IsRunning = false;
+         Log.Warning("Could not read the state of task {Name}: {Message}", Job.Name, ex.Message);
+      }
+
+      _poll?.Stop();
+   }
+
+   private bool Control(Action<Microsoft.Win32.TaskScheduler.Task> action, bool isRunning, string status, string verb)
    {
       using var ts = new TaskService();
       try
       {
-         var folder = TaskSchedulerService.IsTaskSchedulerV1() ? ts.RootFolder : ts.GetFolder("\\" + TaskFolderName);
-         var task   = folder.Tasks.FirstOrDefault(t => t.Name == Job.Name);
-         if (task == null) return;
+         if (FindTask(ts) is not { } task)
+         {
+            Log.Warning("Task {Name} was not found in Task Scheduler", Job.Name);
+            return false;
+         }
 
          action(task);
          IsRunning = isRunning;
          Status    = status;
          Log.Information("Task {Verb}: {Name}", verb, Job.Name);
+         return true;
       }
       catch (Exception ex)
       {
          Log.Error("Failed to {Verb} the task: {Name}. {ex}", verb, Job.Name, ex.Message);
+         return false;
+      }
+   }
+
+   private Microsoft.Win32.TaskScheduler.Task? FindTask(TaskService ts) =>
+            EntreeFolder(ts)?.Tasks.FirstOrDefault(t => t.Name == Job.Name) ??
+            ts.RootFolder.Tasks.FirstOrDefault(t => t.Name == Job.Name);
+
+   private static TaskFolder? EntreeFolder(TaskService ts)
+   {
+      if (TaskSchedulerService.IsTaskSchedulerV1()) return null;
+      try
+      {
+         return ts.GetFolder("\\" + TaskFolderName);
+      }
+      catch (Exception ex) when (ex is DirectoryNotFoundException or FileNotFoundException)
+      {
+         return null;
       }
    }
 
