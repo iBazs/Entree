@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Input;
 using Microsoft.Win32;
+using Serilog;
 using Wpf.Ui.Controls;
 using Entree.Core.Helpers;
 using Entree.MVVM.Model;
@@ -20,19 +22,32 @@ public class SettingsViewModel : Core.BaseClass.ViewModel
    private readonly ICredentialService   _credentialService;
    private readonly LicenseService       _licenseService;
    private readonly INotificationService _notifications;
+   private readonly ISearchService       _searchService;
    private readonly IAppSettings         _settings;
+   private readonly IUpdateService       _updates;
+   private readonly IUserDataService     _userData;
+   private          string?              _availableVersion;
    private          string               _domainPassword = string.Empty;
    private          string?              _domainPath     = string.Empty;
    private          string               _domainUsername = string.Empty;
+   private          bool                 _isUpdating;
    private          bool                 _isValidating;
+   private          string               _updateStatus;
 
    public SettingsViewModel(IAppSettings settings, ICredentialService credentialService, LicenseService licenseService,
-                            INotificationService notifications)
+                            INotificationService notifications, IUpdateService updates, ISearchService searchService,
+                            IUserDataService userData)
    {
+      _userData               = userData;
+      DeleteAllDataCommand    = new RelayCommand(async _ => { await DeleteAllDataAsync(); });
       _notifications          = notifications;
       _settings               = settings;
       _credentialService      = credentialService;
       _licenseService         = licenseService;
+      _updates                = updates;
+      _searchService          = searchService;
+      _updateStatus = updates.IsInstalled ? "Look for a newer version" : "Portable build, new versions are on GitHub";
+      UpdateCommand = new RelayCommand(async _ => { await UpdateAsync(); }, _ => !IsUpdating);
       SelectLogPathCommand    = new RelayCommand(_ => SelectPath(true));
       SelectResultPathCommand = new RelayCommand(_ => SelectPath(false));
 
@@ -121,6 +136,27 @@ public class SettingsViewModel : Core.BaseClass.ViewModel
    }
 
 
+   public bool IsUpdating
+   {
+      get => _isUpdating;
+      private set
+      {
+         Set(ref _isUpdating, value);
+         CommandManager.InvalidateRequerySuggested();
+      }
+   }
+
+   public string UpdateStatus
+   {
+      get => _updateStatus;
+      private set => Set(ref _updateStatus, value);
+   }
+
+   public string UpdateAction =>
+            !_updates.IsInstalled        ? "Download new versions"
+            : _availableVersion is { } v ? $"Install {v} and restart"
+                                           : "Check for updates";
+
    public ObservableCollection<SecureCredential> Domains => _credentialService.GetObservableCredentials();
 
    public RelayCommand ValidateDomainCommand          { get; }
@@ -130,6 +166,106 @@ public class SettingsViewModel : Core.BaseClass.ViewModel
    public RelayCommand SelectLogPathCommand           { get; }
    public RelayCommand ShowLicenseCommand             { get; }
    public RelayCommand ShowThirdPartyLibrariesCommand { get; }
+   public RelayCommand UpdateCommand                  { get; }
+   public RelayCommand DeleteAllDataCommand           { get; }
+
+   internal Func<Task<bool>> ConfirmDeleteAll { get; set; } = ConfirmDeleteAllAsync;
+   internal Action           Exit             { get; set; } = () => System.Windows.Application.Current.Shutdown();
+
+   private async Task DeleteAllDataAsync()
+   {
+      if (_searchService.IsSearchRunning)
+      {
+         _notifications.Show(InfoBarSeverity.Warning, "Wait for the running searches to finish first.",
+                             "Searches are running");
+         return;
+      }
+
+      if (!await ConfirmDeleteAll()) return;
+      if (await _userData.DeleteAllAsync())
+      {
+         Exit();
+         return;
+      }
+
+      _notifications.Show(InfoBarSeverity.Error, "Some scheduled tasks or files could not be deleted. See the log.",
+                          "Not everything was deleted");
+   }
+
+   private static async Task<bool> ConfirmDeleteAllAsync() =>
+            await new Wpf.Ui.Controls.MessageBox
+                  {
+                           Title             = "Delete all Entrée data?",
+                           Content           = "This removes Entrée's scheduled tasks, settings, saved domains and logs " +
+                                               "from this PC, then closes Entrée. Reports in your results folder are kept.",
+                           PrimaryButtonText = "Delete",
+                           CloseButtonText   = "Cancel"
+                  }.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
+
+   public async Task CheckForUpdatesAsync(bool quiet)
+   {
+      if (!_updates.IsInstalled || IsUpdating) return;
+      IsUpdating   = true;
+      UpdateStatus = "Checking…";
+      try
+      {
+         _availableVersion = await _updates.CheckAsync();
+         UpdateStatus      = _availableVersion is null ? $"You have the latest version ({AppVersion})" : "A new version is ready";
+         OnPropertyChanged(nameof(UpdateAction));
+         if (_availableVersion is not null && quiet)
+            _notifications.Show(InfoBarSeverity.Informational,
+                                $"Entrée {_availableVersion} can be installed from Settings, under About.",
+                                "Update available");
+      }
+      catch (Exception ex)
+      {
+         Log.Warning(ex, "Update check failed");
+         UpdateStatus = "Could not reach GitHub";
+         if (!quiet) _notifications.Show(InfoBarSeverity.Warning, ex.Message, "Update check failed");
+      }
+      finally
+      {
+         IsUpdating = false;
+      }
+   }
+
+   private async Task UpdateAsync()
+   {
+      if (!_updates.IsInstalled)
+      {
+         Process.Start(new ProcessStartInfo(UpdateService.ReleasesUrl) { UseShellExecute = true })?.Dispose();
+         return;
+      }
+
+      if (_availableVersion is null)
+      {
+         await CheckForUpdatesAsync(false);
+         return;
+      }
+
+      if (_searchService.IsSearchRunning)
+      {
+         _notifications.Show(InfoBarSeverity.Warning, "Wait for the running searches to finish, then install.",
+                             "Searches are running");
+         return;
+      }
+
+      IsUpdating = true;
+      try
+      {
+         await _updates.DownloadAndRestartAsync(percent => UpdateStatus = $"Downloading… {percent}%");
+      }
+      catch (Exception ex)
+      {
+         Log.Error(ex, "Update to {Version} failed", _availableVersion);
+         UpdateStatus = "The update could not be installed";
+         _notifications.Show(InfoBarSeverity.Error, ex.Message, "Update failed");
+      }
+      finally
+      {
+         IsUpdating = false;
+      }
+   }
 
    private void SelectPath(bool isLog)
    {

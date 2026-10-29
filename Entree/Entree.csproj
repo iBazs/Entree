@@ -15,6 +15,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Program.Main runs Velopack's hooks before WPF starts -->
+        <ApplicationDefinition Remove="App.xaml" />
+        <Page Include="App.xaml" />
         <Page Update="MVVM\View\Windows\MainWindow.xaml">
             <Generator>MSBuild:Compile</Generator>
             <XamlRuntime>Wpf</XamlRuntime>
@@ -28,11 +31,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Entree.Tests"/>
+        <InternalsVisibleTo Include="Entree.Tests" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Config.Net" Version="5.2.1"/>
+        <PackageReference Include="Config.Net" Version="5.2.1" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
         <PackageReference Include="LargeXlsx" Version="2.0.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
@@ -40,9 +43,10 @@
         <PackageReference Include="Sep" Version="0.17.1" />
         <PackageReference Include="Serilog" Version="4.4.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.13" />
         <PackageReference Include="TaskScheduler" Version="2.12.2" />
+        <PackageReference Include="Velopack" Version="1.2.161" />
         <PackageReference Include="WPF-UI" Version="4.3.0" />
     </ItemGroup>
 
@@ -50,25 +54,14 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="Licenses\**\*.*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Licenses\LargeXlsx\info.txt">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Licenses\LargeXlsx\LICENSE.txt">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Licenses\Sep\info.txt">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Licenses\Sep\LICENSE.txt">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Images\entree.png"/>
-        <Resource Include="Images\entree.png"/>
+        <EmbeddedResource Include="Licenses\**\*.txt" LogicalName="Licenses/%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Images\entree.png" />
+        <Resource Include="Images\entree.png" />
     </ItemGroup>
 </Project>

@@ -169,6 +169,7 @@ public class StartupController(
          _window = serviceProvider.GetRequiredService<MainWindow>();
          AppTheme.Apply(serviceProvider.GetRequiredService<IAppSettings>().Theme, _window);
          _window.Closing += MainWindow_OnClosing;
+         _ = serviceProvider.GetRequiredService<SettingsViewModel>().CheckForUpdatesAsync(true);
       }
 
       if (!_window.IsVisible) _window.Show();

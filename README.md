@@ -154,13 +154,16 @@ A log panel at the bottom keeps the last 1,000 entries, flags warnings and error
 
 ## Install
 
-Download a zip from [Releases](https://github.com/iBazs/Entree/releases), unzip, run `Entree.exe`.
+Download an `.exe` from [Releases](https://github.com/iBazs/Entree/releases) and run it.
 
 | Build | Use when |
 |---|---|
-| `win-x64-self-contained` | Any PC, nothing to install |
-| `win-x64-framework-dependent` | Smaller, needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
-| `win-arm64-*` | Windows on ARM |
+| `Entree-{version}-win-x64-setup.exe` | Recommended. Installs per user into `%LocalAppData%\Entree` without admin and updates itself from Settings › About |
+| `Entree-{version}-win-x64-bundled.exe` | Portable, nothing to install |
+| `Entree-{version}-win-x64.exe` | Smaller, needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| `Entree-{version}-win-arm64*.exe` | Windows on ARM |
+
+Settings, saved domains and logs are kept in `%AppData%\Entree`, so updating or uninstalling never touches them. To remove them along with Entrée's scheduled tasks, use **Delete all Entrée data** in Settings › About.
 
 ## Build
 

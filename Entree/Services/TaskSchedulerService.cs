@@ -21,6 +21,7 @@ public interface ITaskSchedulerService
    Task<List<JobViewModel>> LoadJobsAsync();
    Task<bool>               SaveJobAsync(JobViewModel job, TaskScheduleSettings settings);
    Task<bool>               DeleteJobAsync(string taskName);
+   Task<bool>               DeleteAllJobsAsync();
    Task                     EnsureTaskFolderExistsAsync();
 }
 
@@ -142,6 +143,29 @@ public class TaskSchedulerService : ITaskSchedulerService
          Log.Error(ex, "Could not delete the task({Name}). {Message}", taskName, ex.Message);
          return false;
       }
+   }
+
+   public async Task<bool> DeleteAllJobsAsync()
+   {
+      var deleted = true;
+      foreach (var job in await LoadJobsAsync())
+         deleted &= await DeleteJobAsync(job.Name);
+      if (!deleted) return false;
+
+      await Task.Run(() =>
+      {
+         try
+         {
+            using var ts = new TaskService();
+            if (!IsTaskSchedulerV1(ts) && ts.GetFolder(TaskFolderName) is not null)
+               ts.RootFolder.DeleteFolder(TaskFolderName, false);
+         }
+         catch (Exception ex)
+         {
+            Log.Warning(ex, "Could not delete the task folder {TaskFolderName}", TaskFolderName);
+         }
+      });
+      return true;
    }
 
    public async Task EnsureTaskFolderExistsAsync()
