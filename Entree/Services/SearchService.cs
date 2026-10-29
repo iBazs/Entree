@@ -170,6 +170,7 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
 
    private bool Run(SearchConfigViewModel searchConfig, CancellationTokenSource cTokenSource)
    {
+      var opened = new ConcurrentBag<PrincipalContext>();
       try
       {
          cTokenSource.Token.ThrowIfCancellationRequested();
@@ -179,13 +180,14 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
                                         MaxDegreeOfParallelism = Parallelism.Degree(appSettings.ThreadLimit)
                                };
 
+         OnUi(() => searchConfig.CurrentState = "Connecting");
          IReadOnlyList<DomainContext> domains =
          [
-                  ..ShareServer(searchConfig.SearchDirectory, cTokenSource.Token),
+                  ..ShareServer(searchConfig.SearchDirectory, opened, cTokenSource.Token),
                   ..Connect(DomainRouting.Plan(Trusts(cTokenSource.Token),
                                                OnUi(() => credentialService.GetObservableCredentials().ToList()),
                                                searchConfig.IsLocalSearch),
-                            cTokenSource.Token)
+                            opened, cTokenSource.Token)
          ];
          OnUi(() =>
          {
@@ -221,21 +223,24 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
          searchConfig.TimerStop();
          CancelConfigs.TryRemove(searchConfig.Id, out _);
          cTokenSource.Dispose();
-         foreach (var domain in searchConfig.Domains) DomainRouting.Directory(domain)?.Dispose();
+         foreach (var context in opened) context.Dispose();
       }
 
       return !searchConfig.IsCancelled && !searchConfig.IsError;
    }
 
-   private static IReadOnlyList<DomainContext> Connect(IReadOnlyList<DomainSource> sources, CancellationToken token) =>
-            sources.AsParallel().AsOrdered().WithCancellation(token).SelectMany(source => Open(source, token)).ToList();
+   private static IReadOnlyList<DomainContext> Connect(IReadOnlyList<DomainSource> sources,
+                                                       ConcurrentBag<PrincipalContext> opened, CancellationToken token) =>
+            sources.AsParallel().AsOrdered().WithCancellation(token).SelectMany(source => Open(source, opened, token)).ToList();
 
-   private static IReadOnlyList<DomainContext> Open(DomainSource source, CancellationToken token)
+   private static IReadOnlyList<DomainContext> Open(DomainSource source, ConcurrentBag<PrincipalContext> opened,
+                                                    CancellationToken token)
    {
       var name = source.Credential.DomainPath ?? string.Empty;
       switch (WithTimeout(() => Connected(source.Credential.CreatePrincipalContext()), token))
       {
          case Outcome<PrincipalContext>.Done done:
+            opened.Add(done.Value);
             return [new DomainContext.Domain(name, done.Value, source.Sid, source.NetBiosName)];
          case Outcome<PrincipalContext>.Failed failed:
             Log.Error("Could not use {Domain} for translation: {Reason}", name, failed.Reason);
@@ -245,12 +250,14 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
       return [];
    }
 
-   private static IReadOnlyList<DomainContext> ShareServer(string? path, CancellationToken token)
+   private static IReadOnlyList<DomainContext> ShareServer(string? path, ConcurrentBag<PrincipalContext> opened,
+                                                           CancellationToken token)
    {
       if (DomainRouting.ShareServer(DomainLookup.RemotePath(path)) is not { } server) return [];
       switch (WithTimeout(() => OpenMachine(server), token))
       {
          case Outcome<PrincipalContext>.Done done:
+            opened.Add(done.Value);
             return [new DomainContext.Server(server, done.Value)];
          case Outcome<PrincipalContext>.Failed failed:
             Log.Warning("Cannot read the local accounts of {Server}, only their names are resolved: {Reason}", server,
@@ -303,13 +310,21 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
       {
          return new Outcome<T>.Failed(ex.InnerException?.Message ?? ex.Message);
       }
-
-      _ = task.ContinueWith(t =>
+      catch (OperationCanceledException)
       {
-         if (t.Result is Outcome<T>.Done { Value: IDisposable late }) late.Dispose();
-      }, TaskContinuationOptions.OnlyOnRanToCompletion);
+         DisposeWhenDone(task);
+         throw;
+      }
+
+      DisposeWhenDone(task);
       return new Outcome<T>.Failed($"No answer within {ConnectTimeout.TotalSeconds:0} seconds");
    }
+
+   private static void DisposeWhenDone<T>(Task<Outcome<T>> task) =>
+            _ = task.ContinueWith(t =>
+            {
+               if (t.Result is Outcome<T>.Done { Value: IDisposable late }) late.Dispose();
+            }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
    private static void TryCancel(CancellationTokenSource tokenSource)
    {

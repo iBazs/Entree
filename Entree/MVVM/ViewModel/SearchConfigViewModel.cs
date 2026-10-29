@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -223,7 +224,11 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
    public string FileName
    {
       get => _fileName;
-      set => Set(ref _fileName, value);
+      set
+      {
+         Set(ref _fileName, value);
+         Application.Current?.Dispatcher.BeginInvoke(CommandManager.InvalidateRequerySuggested);
+      }
    }
 
    public SearchFor SearchFor
@@ -370,11 +375,11 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
 
    public Brush StatusColor => CurrentState.ToLowerInvariant() switch
                                {
-                                        "done"    => StatusBrushes.Success,
-                                        "running" => StatusBrushes.Info,
-                                        "queued"  => StatusBrushes.Neutral,
-                                        "error"   => StatusBrushes.Danger,
-                                        _         => StatusBrushes.Caution
+                                        "done"                    => StatusBrushes.Success,
+                                        "running" or "connecting" => StatusBrushes.Info,
+                                        "queued"                  => StatusBrushes.Neutral,
+                                        "error"                   => StatusBrushes.Danger,
+                                        _                         => StatusBrushes.Caution
                                };
 
    private void InitializeDirectories(string searchDirectory, string saveDirectory)

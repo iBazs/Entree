@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Input;
 using Microsoft.Win32;
 using Serilog;
 using Wpf.Ui.Controls;
@@ -230,6 +231,8 @@ public class CreateConfigViewModel : Core.BaseClass.ViewModel
                ButtonText    = "Start";
                Icon          = new SymbolIcon(SymbolRegular.Play24, 21);
             }
+
+            CommandManager.InvalidateRequerySuggested();
          });
          OnPropertyChanged();
       }

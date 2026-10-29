@@ -7,6 +7,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using Entree.Core.Helpers;
 using Entree.MVVM.Model;
+using Entree.Core.Controller;
 using Xunit;
 
 namespace Entree.Tests;
@@ -80,4 +81,27 @@ public sealed class ReportFileTests : IDisposable
                               Allow = sids.ToImmutableDictionary(sid => sid, _ => FileSystemRights.ReadAndExecute)
                      }
             };
+
+   [Fact]
+   public void MergeRows_KeepsOneRowPerPathWithTheListingError()
+   {
+      var folder = Entry(@"\\srv\data\locked", true, Readers);
+      var error  = new FileSystemStruct { Path = folder.Path, Security = SecurityInfo.Failed("Access is denied.") };
+      FileSystemStruct[] sorted = [Entry(@"\\srv\data", true, Readers), folder, error];
+
+      var merged = SearchController.MergeRows(sorted);
+
+      Assert.Equal(2, merged.Length);
+      Assert.Equal("Access is denied.", merged[1].Error);
+      Assert.Equal(FileAttributes.Directory, merged[1].FileEntryAttributes);
+      Assert.Contains(Readers, merged[1].AccessControlList.Keys);
+   }
+
+   [Fact]
+   public void MergeRows_WithoutDuplicates_ReturnsTheSameArray()
+   {
+      FileSystemStruct[] sorted = [Entry(@"\\srv\data", true, Readers)];
+
+      Assert.Same(sorted, SearchController.MergeRows(sorted));
+   }
 }

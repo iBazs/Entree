@@ -99,6 +99,7 @@ internal sealed class SearchController : IDisposable
       _timer.Stop();
 
       Array.Sort(results, (x, y) => string.CompareOrdinal(x.Path, y.Path));
+      results = MergeRows(results);
 
       Log.Information("Search Completed.");
       if (results.Length == 0)
@@ -107,6 +108,22 @@ internal sealed class SearchController : IDisposable
          Log.Debug("Time: {elapsedTime} . Found {count} Entries.", _timer.Elapsed, results.Length);
 
       return results;
+   }
+
+   internal static FileSystemStruct[] MergeRows(FileSystemStruct[] sorted)
+   {
+      if (!sorted.Skip(1).Where((row, i) => row.Path == sorted[i].Path).Any()) return sorted;
+      var merged = new List<FileSystemStruct>(sorted.Length);
+      foreach (var row in sorted)
+         if (merged.Count > 0 && merged[^1].Path == row.Path) merged[^1] = Combine(merged[^1], row);
+         else merged.Add(row);
+      return merged.ToArray();
+   }
+
+   private static FileSystemStruct Combine(FileSystemStruct first, FileSystemStruct second)
+   {
+      var (row, other) = first.HasError && !second.HasError ? (second, first) : (first, second);
+      return row with { Security = row.Security with { Error = row.Error ?? other.Error } };
    }
 
    private ConcurrentDictionary<SecurityIdentifier, List<AccountInfo>> ResolveSidsToAccounts(
