@@ -28,3 +28,12 @@ jobs:
       - name: Test
         run: dotnet test Entree.sln -c Release --logger "console;verbosity=normal"
 
+      - name: Lab scripts parse
+        shell: pwsh
+        run: |
+          $errors = Get-ChildItem lab/*.ps1 | ForEach-Object {
+            $parseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors)
+            $parseErrors | ForEach-Object { "$($_.Extent.File):$($_.Extent.StartLineNumber) $($_.Message)" }
+          }
+          if ($errors) { $errors; exit 1 }
