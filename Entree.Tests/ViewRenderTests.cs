@@ -104,7 +104,9 @@ public class ViewRenderTests(ITestOutputHelper output)
    private static CreateConfigViewModel CreateConfigViewModelWithConfig()
    {
       var viewModel = new CreateConfigViewModel(new FakeSearchService(), new FakeNavigationService(), new FakeAppSettings());
-      viewModel.AddNewConfigCommand.Execute(new object());
+      viewModel.SearchConfigs.Add(new SearchConfigViewModel(@"\\fileserver\finance", @"C:\Reports", SearchFor.FoldersAndFiles, 3,
+                                                            excludedAccounts: ["BUILTIN\\Administrators"]));
+      viewModel.SearchConfigs.Add(new SearchConfigViewModel(@"Z:\Shared", @"C:\Reports", SearchFor.Folders, showMatrix: false));
       return viewModel;
    }
 
