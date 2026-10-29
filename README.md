@@ -57,7 +57,8 @@ While it runs you see the phase, current folder, item count and elapsed time, an
 
 <table>
   <tr>
-    <td><img src="docs/searching.png" alt="A search running next to a finished one"><p align="center"><b>Running</b></p></td>
+    <td width="50%"><img src="docs/configs.png" alt="A configuration ready to run"><p align="center"><b>Configuration</b></p></td>
+    <td width="50%"><img src="docs/searching.png" alt="A search running next to a finished one"><p align="center"><b>Running</b></p></td>
   </tr>
 </table>
 
