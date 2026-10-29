@@ -5,13 +5,12 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.DirectoryServices.AccountManagement;
 using System.IO;
-using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using Entree.Core.API;
 using Entree.Core.BaseClass;
 using Entree.MVVM.Model;
 
@@ -59,8 +58,7 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
                                 bool openResult = true,
                                 bool isLocalSearch = false,
                                 ExportAs exportAs = ExportAs.Xlsx,
-                                ObservableCollection<string>? excludedAccounts = null,
-                                ObservableCollection<PrincipalContext>? domains = null)
+                                ObservableCollection<string>? excludedAccounts = null)
    {
       SearchConfig = new SearchConfigModel
                      {
@@ -78,7 +76,6 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
       InitializeDepthSettings(depth);
 
       SearchFor        = searchFor;
-      Domains          = domains ?? [];
       ExcludedAccounts = excludedAccounts ?? [];
 
       IsLocalSearch  = isLocalSearch;
@@ -322,10 +319,7 @@ public class SearchConfigViewModel : Core.BaseClass.ViewModel
 
    public ExportAs ExportAs => SearchConfig.ExportAs;
 
-   [JsonIgnore]
-   public ObservableCollection<string> DomainNames { get; } = [];
-
-   public ObservableCollection<PrincipalContext> Domains
+   public ObservableCollection<DomainContext> Domains
    {
       get => SearchConfig.Domains;
       private init

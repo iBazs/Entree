@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Collections.ObjectModel;
-using System.DirectoryServices.AccountManagement;
+using System.Text.Json.Serialization;
+using Entree.Core.API;
 using Entree.Core.BaseClass;
 
 namespace Entree.MVVM.Model;
@@ -24,8 +25,8 @@ public class SearchConfigModel
    public bool     OpenResults { get; set; }
    public ExportAs ExportAs    { get; set; }
 
-   public ObservableCollection<PrincipalContext> Domains          { get; set; } = [];
-   public ObservableCollection<string>           ExcludedAccounts { get; set; } = [];
+   [JsonIgnore] public ObservableCollection<DomainContext> Domains          { get; set; } = [];
+                public ObservableCollection<string>        ExcludedAccounts { get; set; } = [];
 }
 
 public enum ExportAs

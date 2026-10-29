@@ -358,20 +358,20 @@
                                     Icon="MapDrive24"
                                     IconSize="28"
                                     Spacing="0,12"
-                                    Title="No extra domains"
-                                    Visibility="{Binding DomainNames.Count, Converter={StaticResource ListToVisibility}, ConverterParameter=invert}" />
+                                    Title="No domains"
+                                    Visibility="{Binding Domains.Count, Converter={StaticResource ListToVisibility}, ConverterParameter=invert}" />
                                 <ItemsControl
-                                    ItemsSource="{Binding DomainNames}"
+                                    ItemsSource="{Binding Domains}"
                                     Margin="0,8,0,0"
                                     MaxHeight="160"
                                     Template="{StaticResource ScrollingList}"
-                                    Visibility="{Binding DomainNames.Count, Converter={StaticResource ListToVisibility}}">
+                                    Visibility="{Binding Domains.Count, Converter={StaticResource ListToVisibility}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <ui:TextBlock
                                                 FontTypography="Caption"
                                                 Margin="0,2"
-                                                Text="{Binding}" />
+                                                Text="{Binding Name}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

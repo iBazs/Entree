@@ -70,6 +70,17 @@ public static class ReportHelper
 
    public static readonly XlsxStyle DuplicateStyle = HeaderStyle.With(new XlsxFill(PantoneOrange));
 
+   public static readonly XlsxStyle LimitedStyle = HeaderStyle.With(new XlsxFill(Color.FromArgb(112, 48, 160)));
+
+   public static XlsxStyle AccountStyle(AccountState state, bool duplicate) =>
+            duplicate ? DuplicateStyle
+            : state switch
+              {
+                       AccountState.Enabled => EnabledStyle,
+                       AccountState.Limited => LimitedStyle,
+                       _                    => DisabledStyle
+              };
+
    public static (string? Character, XlsxStyle Style) GetAccessStyle(AccessType accessType)
    {
       return accessType switch

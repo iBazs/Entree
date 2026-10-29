@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
@@ -21,30 +22,34 @@ public sealed class SecurityApi : IDisposable
 {
    private readonly ParallelOptions _parallelOptions;
 
-   public SecurityApi(IEnumerable<PrincipalContext> principalContexts, ParallelOptions parallelOptions)
+   public SecurityApi(IEnumerable<DomainContext> domains, ParallelOptions parallelOptions)
    {
       _parallelOptions = parallelOptions ?? throw new ArgumentNullException(nameof(parallelOptions));
+      Domains = [..domains ?? throw new ArgumentNullException(nameof(domains)),
+                 new DomainContext.Local(Environment.MachineName, new PrincipalContext(ContextType.Machine))];
+      DomainSids = Domains.OfType<DomainContext.Domain>().Select(d => d.Sid).OfType<SecurityIdentifier>().ToFrozenSet();
 
-      foreach (var context in principalContexts ?? throw new ArgumentNullException(nameof(principalContexts)))
-      {
-         PrincipalContexts.Add(context);
-         NetBiosName.TryAdd(context, GetDomainNetBiosName(context));
-      }
+      foreach (var domain in Domains.OfType<DomainContext.Domain>())
+         NetBiosName.TryAdd(domain.Context, domain.NetBiosName ?? GetDomainNetBiosName(domain.Context));
+      foreach (var server in Domains.OfType<DomainContext.Server>())
+         if (server.Context is { } context)
+            NetBiosName.TryAdd(context, GetDomainNetBiosName(context));
    }
 
-   private ConcurrentBag<PrincipalContext> PrincipalContexts { get; } = [new(ContextType.Machine)];
+   private ImmutableArray<DomainContext>  Domains    { get; }
+   private FrozenSet<SecurityIdentifier>  DomainSids { get; }
    private ConcurrentDictionary<string, bool> GroupsDone { get; } = [];
    private ConcurrentDictionary<SecurityIdentifier, ConcurrentBag<AccountInfo>> AccountCache { get; } = [];
    private ConcurrentDictionary<SecurityIdentifier, bool> SidValues { get; } = [];
    private ConcurrentDictionary<PrincipalContext, string> NetBiosName { get; } = [];
-   private ConcurrentDictionary<PrincipalContext, bool>   Unreachable { get; } = [];
+   private ConcurrentDictionary<DomainContext, bool>      Unreadable { get; } = [];
    private ConcurrentDictionary<DescriptorKey, SecurityInfo> DescriptorCache { get; } = [];
 
    private const int MaxCachedDescriptors = 100_000;
 
    public void Dispose()
    {
-      foreach (var context in PrincipalContexts) context.Dispose();
+      foreach (var domain in Domains) DomainRouting.Directory(domain)?.Dispose();
    }
 
    public IEnumerable<SecurityIdentifier> GetSecurityIdentifiers() => SidValues.Keys;
@@ -227,7 +232,10 @@ public sealed class SecurityApi : IDisposable
 
    private GroupPrincipal? FindGroup(AccountInfo account)
    {
-      foreach (var principalContext in PrincipalContexts)
+      foreach (var principalContext in DomainRouting.GroupSources(Serving(account.Sid))
+                                                 .Where(d => !Unreadable.ContainsKey(d))
+                                                 .Select(DomainRouting.Directory)
+                                                 .OfType<PrincipalContext>())
       {
          try
          {
@@ -260,44 +268,48 @@ public sealed class SecurityApi : IDisposable
    {
       if (UnixIdentity.TryDescribe(sid, out var unixAccount)) return [unixAccount];
 
-      var          resolvedAccounts   = new ConcurrentBag<AccountInfo>();
-      AccountInfo? machineAccountInfo = null;
-
-      foreach (var principalContext in PrincipalContexts.Where(c => !Unreachable.ContainsKey(c)))
-      {
-         var accountInfo = TryResolveFromContext(sid, principalContext);
-         if (accountInfo == null) continue;
-
-         if (principalContext.ContextType == ContextType.Machine) machineAccountInfo = accountInfo;
-         else resolvedAccounts.Add(accountInfo);
-      }
-
-      if (resolvedAccounts.IsEmpty && machineAccountInfo != null) resolvedAccounts.Add(machineAccountInfo);
-
-      return resolvedAccounts.IsEmpty ? [new AccountInfo(sid)] : resolvedAccounts;
+      var answers = Serving(sid).SelectMany(d => Answers(sid, d).Select(info => (d, info))).ToList();
+      var merged  = DomainRouting.Merge(sid, answers);
+      return merged.Count == 0 ? [new AccountInfo(sid)] : [..merged];
    }
 
-   private AccountInfo? TryResolveFromContext(SecurityIdentifier sid, PrincipalContext context)
+   private List<DomainContext> Serving(SecurityIdentifier sid) =>
+            Domains.Where(d => DomainRouting.Serves(d, sid, DomainSids)).ToList();
+
+   private IReadOnlyList<AccountInfo> Answers(SecurityIdentifier sid, DomainContext domain)
    {
+      var found = FromDirectory(sid, domain);
+      return found.Count > 0
+               ? found
+               : domain switch
+                 {
+                          DomainContext.Local         => [DomainLookup.Lookup(sid)],
+                          DomainContext.Server server => [DomainLookup.Lookup(sid, server.Name)],
+                          _                           => []
+                 };
+   }
+
+   private IReadOnlyList<AccountInfo> FromDirectory(SecurityIdentifier sid, DomainContext domain)
+   {
+      if (DomainRouting.Directory(domain) is not { } context || Unreadable.ContainsKey(domain)) return [];
       try
       {
          using var principal = Principal.FindByIdentity(context, IdentityType.Sid, sid.ToString());
-         if (principal != null) return CreateAccountInfo(principal);
-
-         if (context.ContextType == ContextType.Machine) return GetLocalAccountInfo(sid);
+         return principal is null ? [] : [CreateAccountInfo(principal)];
       }
-      catch (PrincipalServerDownException ex)
+      catch (Exception ex) when (ex is PrincipalServerDownException or UnauthorizedAccessException)
       {
-         if (Unreachable.TryAdd(context, true))
-            Log.Error("{Context} is unreachable, its accounts stay unresolved: {Message}", context.Name, ex.Message);
+         if (Unreadable.TryAdd(domain, true))
+            Log.Error("{Context} cannot be read, its accounts stay limited or unresolved: {Message}",
+                      DomainRouting.Name(domain), ex.Message);
       }
       catch (Exception ex)
       {
-         Log.Warning("Failed to resolve SID {SecurityIdentifier} in context {Context}: {Message}",
-                     sid, context.Name ?? "Local", ex.Message);
+         Log.Warning("Failed to resolve SID {SecurityIdentifier} in {Context}: {Message}", sid,
+                     DomainRouting.Name(domain), ex.Message);
       }
 
-      return null;
+      return [];
    }
 
    private AccountInfo CreateAccountInfo(Principal principal)
@@ -349,33 +361,6 @@ public sealed class SecurityApi : IDisposable
             return AccountState.Unknown;
       }
    }
-
-   private const string BuiltinDomainSidPrefix = "S-1-5-32-";
-
-   private static AccountInfo GetLocalAccountInfo(SecurityIdentifier sid)
-   {
-      try
-      {
-         var translatedName = sid.Translate(typeof(NTAccount)).Value;
-         var parts          = translatedName.Split('\\');
-         var domain         = parts.Length > 1 ? parts[0] : null;
-         var name           = parts[^1];
-
-         var accountType = DetermineLocalAccountType(sid, domain);
-
-         return new AccountInfo(sid, domain, name, accountType);
-      }
-      catch (Exception ex)
-      {
-         Log.Error("Failed to resolve local SID {SecurityIdentifier}: {Message}", sid, ex.Message);
-         return new AccountInfo(sid, accountState: AccountState.Unknown, error: ex.Message);
-      }
-   }
-
-   private static AccountType DetermineLocalAccountType(SecurityIdentifier sid, string? domain) =>
-            domain is null || sid.Value.StartsWith(BuiltinDomainSidPrefix, StringComparison.Ordinal)
-                     ? AccountType.Group
-                     : AccountType.User;
 
    private static ImmutableDictionary<SecurityIdentifier, FileSystemRights> ProcessAccessRules(
             AuthorizationRuleCollection accessRules, AccessControlType type)

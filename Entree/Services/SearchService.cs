@@ -4,9 +4,11 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.DirectoryServices.AccountManagement;
 using System.IO;
 using System.Windows;
 using Serilog;
+using Entree.Core.API;
 using Entree.Core.BaseClass;
 using Entree.Core.Controller;
 using Entree.Core.Helpers;
@@ -28,6 +30,8 @@ public interface ISearchService : INotifyPropertyChanged
 public sealed class SearchService(IAppSettings appSettings, ICredentialService credentialService)
          : ObservableObject, ISearchService
 {
+   private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(2);
+
    private readonly object                     _gate         = new();
    private readonly Dictionary<string, Queued> _pendingByKey = new(StringComparer.Ordinal);
    private readonly Queue<Queued>              _queue        = new();
@@ -175,26 +179,18 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
                                         MaxDegreeOfParallelism = Parallelism.Degree(appSettings.ThreadLimit)
                                };
 
-         if (!searchConfig.IsLocalSearch)
-            foreach (var credential in OnUi(() => credentialService.GetObservableCredentials().ToList()))
-            {
-               var principalTask = Task.Run(credential.CreatePrincipalContext);
-               var completed     = principalTask.Wait(TimeSpan.FromSeconds(2), cTokenSource.Token);
-               var result        = completed ? principalTask.Result : null;
-               if (!completed)
-                  _ = principalTask.ContinueWith(t => t.Result?.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
-               if (result is null)
-               {
-                  Log.Error("Could not use {Domain} for translation.", credential.DomainPath);
-                  continue;
-               }
-
-               OnUi(() =>
-               {
-                  searchConfig.Domains.Add(result);
-                  searchConfig.DomainNames.Add(credential.DomainPath ?? string.Empty);
-               });
-            }
+         IReadOnlyList<DomainContext> domains =
+         [
+                  ..ShareServer(searchConfig.SearchDirectory, cTokenSource.Token),
+                  ..Connect(DomainRouting.Plan(Trusts(cTokenSource.Token),
+                                               OnUi(() => credentialService.GetObservableCredentials().ToList()),
+                                               searchConfig.IsLocalSearch),
+                            cTokenSource.Token)
+         ];
+         OnUi(() =>
+         {
+            foreach (var domain in domains) searchConfig.Domains.Add(domain);
+         });
 
          using var search = new SearchController(searchConfig, parallelOptions);
          search.Start();
@@ -225,11 +221,95 @@ public sealed class SearchService(IAppSettings appSettings, ICredentialService c
          searchConfig.TimerStop();
          CancelConfigs.TryRemove(searchConfig.Id, out _);
          cTokenSource.Dispose();
-         foreach (var domain in searchConfig.Domains) domain.Dispose();
+         foreach (var domain in searchConfig.Domains) DomainRouting.Directory(domain)?.Dispose();
          OnUi(searchConfig.Domains.Clear);
       }
 
       return !searchConfig.IsCancelled && !searchConfig.IsError;
+   }
+
+   private static IReadOnlyList<DomainContext> Connect(IReadOnlyList<DomainSource> sources, CancellationToken token) =>
+            sources.AsParallel().AsOrdered().WithCancellation(token).SelectMany(source => Open(source, token)).ToList();
+
+   private static IReadOnlyList<DomainContext> Open(DomainSource source, CancellationToken token)
+   {
+      var name = source.Credential.DomainPath ?? string.Empty;
+      switch (WithTimeout(() => Connected(source.Credential.CreatePrincipalContext()), token))
+      {
+         case Outcome<PrincipalContext>.Done done:
+            return [new DomainContext.Domain(name, done.Value, source.Sid, source.NetBiosName)];
+         case Outcome<PrincipalContext>.Failed failed:
+            Log.Error("Could not use {Domain} for translation: {Reason}", name, failed.Reason);
+            break;
+      }
+
+      return [];
+   }
+
+   private static IReadOnlyList<DomainContext> ShareServer(string? path, CancellationToken token)
+   {
+      if (DomainRouting.ShareServer(DomainLookup.RemotePath(path)) is not { } server) return [];
+      switch (WithTimeout(() => OpenMachine(server), token))
+      {
+         case Outcome<PrincipalContext>.Done done:
+            return [new DomainContext.Server(server, done.Value)];
+         case Outcome<PrincipalContext>.Failed failed:
+            Log.Warning("Cannot read the local accounts of {Server}, only their names are resolved: {Reason}", server,
+                        failed.Reason);
+            break;
+      }
+
+      return [new DomainContext.Server(server, null)];
+   }
+
+   private static Outcome<PrincipalContext> Connected(PrincipalContext? context) =>
+            context is null
+                     ? new Outcome<PrincipalContext>.Failed("The domain did not accept the connection")
+                     : new Outcome<PrincipalContext>.Done(context);
+
+   private static Outcome<PrincipalContext> OpenMachine(string server)
+   {
+      try
+      {
+         return new Outcome<PrincipalContext>.Done(new PrincipalContext(ContextType.Machine, server));
+      }
+      catch (Exception ex)
+      {
+         return new Outcome<PrincipalContext>.Failed(ex.Message);
+      }
+   }
+
+   private static IReadOnlyList<TrustedDomain> Trusts(CancellationToken token)
+   {
+      switch (WithTimeout(DomainLookup.Trusts, token))
+      {
+         case Outcome<IReadOnlyList<TrustedDomain>>.Done done:
+            return done.Value;
+         case Outcome<IReadOnlyList<TrustedDomain>>.Failed failed:
+            Log.Information("No domain trusts are used, only domains from Settings: {Reason}", failed.Reason);
+            break;
+      }
+
+      return [];
+   }
+
+   private static Outcome<T> WithTimeout<T>(Func<Outcome<T>> work, CancellationToken token)
+   {
+      var task = Task.Run(work, token);
+      try
+      {
+         if (task.Wait(ConnectTimeout, token)) return task.Result;
+      }
+      catch (AggregateException ex)
+      {
+         return new Outcome<T>.Failed(ex.InnerException?.Message ?? ex.Message);
+      }
+
+      _ = task.ContinueWith(t =>
+      {
+         if (t.Result is Outcome<T>.Done { Value: IDisposable late }) late.Dispose();
+      }, TaskContinuationOptions.OnlyOnRanToCompletion);
+      return new Outcome<T>.Failed($"No answer within {ConnectTimeout.TotalSeconds:0} seconds");
    }
 
    private static void TryCancel(CancellationTokenSource tokenSource)

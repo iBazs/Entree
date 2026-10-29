@@ -153,37 +153,14 @@ public class ExcelHandler(
       var duplicateHeaderStyle =
                ReportHelper.DuplicateStyle.With(new XlsxAlignment(XlsxAlignment.Horizontal.Center,
                                                                   textRotation: 90));
+      var limitedHeaderStyle =
+               ReportHelper.LimitedStyle.With(new XlsxAlignment(XlsxAlignment.Horizontal.Center, textRotation: 90));
 
-      var columns = new List<XlsxColumn>
-                    {
-                             XlsxColumn.Formatted(60)
-                    };
-
-      var disabledSids  = new HashSet<SecurityIdentifier>();
-      var unknownSids   = new HashSet<SecurityIdentifier>();
-      var partSidsCount = 0;
-
-      foreach (var sid in partSidsList)
-      {
-         _cToken.ThrowIfCancellationRequested();
-         accountsDictionary.TryGetValue(sid, out var accountList);
-         switch (accountList?.First())
-         {
-            case null or { State: AccountState.Unknown }:
-               unknownSids.Add(sid);
-               break;
-            case { State: AccountState.Disabled }:
-               disabledSids.Add(sid);
-               break;
-         }
-
-         columns.Add(XlsxColumn.Formatted(3));
-         partSidsCount++;
-      }
+      List<XlsxColumn> columns = [XlsxColumn.Formatted(60), ..partSidsList.Select(_ => XlsxColumn.Formatted(3))];
 
       var worksheet = xlsxWriter.BeginWorksheet(sheetName,
                                                 columns: columns, splitRow: 1, splitColumn: 1)
-                                .SetAutoFilter(1, 1, 1, partSidsCount + 1);
+                                .SetAutoFilter(1, 1, 1, partSidsList.Count + 1);
 
       worksheet.BeginRow();
       worksheet.Write("Path", pathStyle);
@@ -192,11 +169,14 @@ public class ExcelHandler(
       {
          _cToken.ThrowIfCancellationRequested();
          var accountInfo = accountsDictionary[sid].First();
-         var account     = accountInfo.FullName;
-         if (disabledSids.Contains(sid)) worksheet.Write(account, disabledHeaderStyle);
-         else if (unknownSids.Contains(sid)) worksheet.Write(account, unknownHeaderStyle);
-         else if (_duplicateSids.Contains(sid)) worksheet.Write(account, duplicateHeaderStyle);
-         else worksheet.Write(account, enabledHeaderStyle);
+         worksheet.Write(accountInfo.FullName, accountInfo.State switch
+                                               {
+                                                        AccountState.Disabled             => disabledHeaderStyle,
+                                                        AccountState.Unknown              => unknownHeaderStyle,
+                                                        _ when _duplicateSids.Contains(sid) => duplicateHeaderStyle,
+                                                        AccountState.Limited              => limitedHeaderStyle,
+                                                        _                                 => enabledHeaderStyle
+                                               });
       }
 
       foreach (var matrixRow in rows)
@@ -252,11 +232,8 @@ public class ExcelHandler(
                                         where currentPosition < @group.Length - 1
                                         select @group[currentPosition])
          {
-            var style = currentAccount.State == AccountState.Enabled
-                     ? ReportHelper.EnabledStyle
-                     : ReportHelper.DisabledStyle;
-            style = _duplicateSids.Contains(currentAccount.Sid) ? ReportHelper.DuplicateStyle : style;
-            xlsxWriter.Write(currentAccount.FullName, style);
+            xlsxWriter.Write(currentAccount.FullName,
+                             ReportHelper.AccountStyle(currentAccount.State, _duplicateSids.Contains(currentAccount.Sid)));
          }
       }
    }
@@ -280,8 +257,7 @@ public class ExcelHandler(
       {
          _cToken.ThrowIfCancellationRequested();
          xlsxWriter.BeginRow();
-         var style = account.State == AccountState.Enabled ? ReportHelper.EnabledStyle : ReportHelper.DisabledStyle;
-         style = _duplicateSids.Contains(account.Sid) ? ReportHelper.DuplicateStyle : style;
+         var style = ReportHelper.AccountStyle(account.State, _duplicateSids.Contains(account.Sid));
          xlsxWriter.Write(account.FullName, style);
          xlsxWriter.Write(account.Name, style);
          xlsxWriter.Write(account.Domain, style);

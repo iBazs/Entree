@@ -131,7 +131,7 @@
                     <controls:ToggleSwitchWithLabel
                         IsChecked="{Binding IsLocalSearch, UpdateSourceTrigger=PropertyChanged}"
                         ToggleText="Local domain only"
-                        ToggleTooltip="Translate SIDs with the local domain only, without the domains added in Settings" />
+                        ToggleTooltip="Translate SIDs with this computer, its own domain and the share server only, without trusted domains or the domains added in Settings" />
                     <controls:ToggleSwitchWithLabel
                         IsChecked="{Binding Inherited, UpdateSourceTrigger=PropertyChanged}"
                         ToggleText="Include inherited permissions"

@@ -7,5 +7,6 @@ public enum AccountState
 {
    Enabled,
    Disabled,
+   Limited,
    Unknown
 }

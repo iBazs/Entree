@@ -208,4 +208,20 @@ public class ModelAndHelperTests
    [Fact]
    public void FromCsvCell_KeepsAnApostropheThatGuardsNothing() =>
       Assert.Equal("'quoted", ExportData.FromCsvCell("'quoted"));
+
+   [Theory]
+   [InlineData(AccountState.Enabled, false, "Enabled")]
+   [InlineData(AccountState.Disabled, false, "Disabled")]
+   [InlineData(AccountState.Unknown, false, "Disabled")]
+   [InlineData(AccountState.Limited, false, "Limited")]
+   [InlineData(AccountState.Limited, true, "Duplicate")]
+   [InlineData(AccountState.Enabled, true, "Duplicate")]
+   public void AccountStyle_ColorsLimitedPurpleAndConflictsOrange(AccountState state, bool duplicate, string expected) =>
+      Assert.Equal(expected switch
+                   {
+                      "Enabled"   => ReportHelper.EnabledStyle,
+                      "Limited"   => ReportHelper.LimitedStyle,
+                      "Duplicate" => ReportHelper.DuplicateStyle,
+                      _           => ReportHelper.DisabledStyle
+                   }, ReportHelper.AccountStyle(state, duplicate));
 }
