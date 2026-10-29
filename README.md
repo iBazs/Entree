@@ -55,6 +55,12 @@ Add one configuration per folder or share. Duplicate, load, save, or drag a `.en
 
 While it runs you see the phase, current folder, item count and elapsed time, and you can cancel one search or all of them. Close the window mid run and Entrée finishes from the tray.
 
+<table>
+  <tr>
+    <td><img src="docs/searching.png" alt="A search running next to a finished one"><p align="center"><b>Running</b></p></td>
+  </tr>
+</table>
+
 <details>
 <summary><b>What Entrée handles for you</b></summary>
 
@@ -79,10 +85,16 @@ While it runs you see the phase, current folder, item count and elapsed time, an
 
 Matrix legend: **F** Full Control · **M** Modify · **W** Write · **R** Read · **L** List · **S** Special · **D** Deny · **?** Unknown. Deny overrides Allow for the same account.
 
+<img src="docs/matrix.png" alt="Matrix sheet of a sample report">
+
+<img src="docs/identity.png" alt="Identity sheet of a sample report">
+
+<img src="docs/rawdata.png" alt="RawData sheet of a sample report">
+
 <details>
 <summary><b>Report details</b></summary>
 
-- Headers are frozen and filtered. Disabled accounts are grey, unresolved accounts lime, and accounts found in several domains orange.
+- Headers are frozen and filtered. Disabled accounts are grey, unresolved accounts lime, accounts found in several domains orange, and accounts whose state or members could not be read purple (`Limited`).
 - Sheets split every 1,000,000 rows (`RawData_2`, ...). The matrix also splits every 10,000 accounts and Groups every 16,384 columns. Rows of one item are never split.
 - CSV exports are a `.zip` holding `RawData.csv`, `Matrix.csv`, `Groups.csv` and `Identity.csv`.
 - CSV cells that start with `=`, `+`, `-` or `@` are escaped, so a file name cannot run as a spreadsheet formula.
