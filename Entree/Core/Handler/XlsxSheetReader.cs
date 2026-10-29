@@ -18,14 +18,17 @@ internal static partial class XlsxSheetReader
 {
    private const string MainNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
    private const string RelNs  = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-   private const int    ChunkSize = 1 << 16;
+   private const int    ChunkSize    = 1 << 16;
+   private const int    MaxTagChars  = 1 << 24;
+   private const int    MaxCellChars = 1 << 20;
 
    private static readonly XmlReaderSettings Settings = new()
                                                         {
-                                                                 DtdProcessing    = DtdProcessing.Prohibit,
-                                                                 IgnoreComments   = true,
-                                                                 IgnoreWhitespace = false,
-                                                                 XmlResolver      = null
+                                                                 DtdProcessing           = DtdProcessing.Prohibit,
+                                                                 IgnoreComments          = true,
+                                                                 IgnoreWhitespace        = false,
+                                                                 MaxCharactersInDocument = 1L << 28,
+                                                                 XmlResolver             = null
                                                         };
 
    public static XlsxWorkbook Load(string filePath)
@@ -50,7 +53,11 @@ internal static partial class XlsxSheetReader
       while (true)
       {
          cancellationToken.ThrowIfCancellationRequested();
-         if (length == buffer.Length) Array.Resize(ref buffer, buffer.Length * 2);
+         if (length == buffer.Length)
+         {
+            if (buffer.Length >= MaxTagChars) throw new InvalidDataException($"A tag in sheet '{sheetName}' is too large");
+            Array.Resize(ref buffer, buffer.Length * 2);
+         }
          var read = text.ReadBlock(buffer, length, buffer.Length - length);
          length += read;
          var consumed = scanner.Scan(buffer, length, read == 0, rows);
@@ -348,6 +355,7 @@ internal static partial class XlsxSheetReader
 
       private void AppendText(char[] buffer, int start, int end, bool entities)
       {
+         if (_text.Length > MaxCellChars) throw new InvalidDataException("A cell in a sheet part is too large");
          var span = buffer.AsSpan(start, end - start);
          while (!span.IsEmpty)
          {
