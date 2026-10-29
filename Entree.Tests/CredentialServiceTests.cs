@@ -98,4 +98,19 @@ public sealed class CredentialServiceTests : IDisposable
       Assert.Equal(20, new CredentialService(StorePath).GetObservableCredentials().Count);
       Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
    }
+
+   [Fact]
+   public void UnreadableFile_KeepsOnlyTheNewestCorruptCopies()
+   {
+      File.WriteAllText(StorePath, "not json");
+      foreach (var stamp in new[] { "20200101000000", "20210101000000", "20220101000000", "20230101000000" })
+         File.WriteAllText($"{StorePath}.corrupt-{stamp}", "old");
+
+      _ = new CredentialService(StorePath);
+
+      var kept = CredentialService.CorruptCopies(StorePath).Select(Path.GetFileName).ToList();
+      Assert.Equal(3, kept.Count);
+      Assert.DoesNotContain("d.corrupt-20200101000000", kept);
+      Assert.DoesNotContain("d.corrupt-20210101000000", kept);
+   }
 }

@@ -18,7 +18,8 @@ public interface ICredentialService
 
 public class CredentialService : ICredentialService
 {
-   private const int ReadAttempts = 3;
+   private const int ReadAttempts       = 3;
+   private const int KeptCorruptCopies = 3;
 
    private readonly string?                                _credentialsFilePath;
    private readonly SemaphoreSlim                          _gate                  = new(1, 1);
@@ -135,12 +136,16 @@ public class CredentialService : ICredentialService
       try
       {
          File.Copy(path, $"{path}.corrupt-{DateTime.Now:yyyyMMddHHmmss}", true);
+         foreach (var old in CorruptCopies(path).Skip(KeptCorruptCopies)) File.Delete(old);
       }
       catch (Exception ex)
       {
          Log.Error(ex, "Could not keep a copy of unreadable credentials file {Path}", path);
       }
    }
+
+   internal static IEnumerable<string> CorruptCopies(string path) =>
+            Directory.GetFiles(Path.GetDirectoryName(path)!, $"{Path.GetFileName(path)}.corrupt-*").OrderDescending(StringComparer.Ordinal);
 
    internal static bool TryPersist(string path, IReadOnlyList<SecureCredential> credentials)
    {
