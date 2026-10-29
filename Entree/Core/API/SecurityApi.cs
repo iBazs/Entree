@@ -191,9 +191,9 @@ public sealed class SecurityApi : IDisposable
 
       try
       {
-         var accessRules = FileSystemGetAccessControl(fss, isInherited, currentAccountType);
+         var accessRules = AppliedRules(FileSystemGetAccessControl(fss, isInherited, currentAccountType));
 
-         foreach (FileSystemAccessRule rule in accessRules)
+         foreach (var rule in accessRules)
             if (rule.IdentityReference is SecurityIdentifier sid)
                SidValues.TryAdd(sid, true);
 
@@ -362,10 +362,13 @@ public sealed class SecurityApi : IDisposable
       }
    }
 
+   internal static List<FileSystemAccessRule> AppliedRules(AuthorizationRuleCollection rules) =>
+            rules.Cast<FileSystemAccessRule>().Where(rule => !rule.PropagationFlags.HasFlag(PropagationFlags.InheritOnly)).ToList();
+
    private static ImmutableDictionary<SecurityIdentifier, FileSystemRights> ProcessAccessRules(
-            AuthorizationRuleCollection accessRules, AccessControlType type)
+            IEnumerable<FileSystemAccessRule> accessRules, AccessControlType type)
    {
-      return accessRules.Cast<FileSystemAccessRule>()
+      return accessRules
                         .Where(x => x.AccessControlType == type)
                         .GroupBy(x => x.IdentityReference)
                         .ToImmutableDictionary(

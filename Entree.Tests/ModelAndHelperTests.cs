@@ -8,6 +8,7 @@ using System.Security.Principal;
 using Serilog.Events;
 using Serilog.Parsing;
 using Wpf.Ui.Appearance;
+using Entree.Core.API;
 using Entree.Core.BaseClass;
 using Entree.Core.Handler;
 using Entree.Core.Helpers;
@@ -225,4 +226,22 @@ public class ModelAndHelperTests
                       "Duplicate" => ReportHelper.DuplicateStyle,
                       _           => ReportHelper.DisabledStyle
                    }, ReportHelper.AccountStyle(state, duplicate));
+
+   [Fact]
+   public void AppliedRules_SkipsRulesThatOnlyInherit()
+   {
+      var security = new DirectorySecurity();
+      var owner    = new SecurityIdentifier(WellKnownSidType.CreatorOwnerSid, null);
+      security.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl,
+                                                      InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                                                      PropagationFlags.InheritOnly, AccessControlType.Allow));
+      security.AddAccessRule(new FileSystemAccessRule(SidA, FileSystemRights.Read, InheritanceFlags.None,
+                                                      PropagationFlags.None, AccessControlType.Allow));
+      security.AddAccessRule(new FileSystemAccessRule(SidB, FileSystemRights.Modify, InheritanceFlags.ContainerInherit,
+                                                      PropagationFlags.InheritOnly, AccessControlType.Allow));
+
+      var applied = SecurityApi.AppliedRules(security.GetAccessRules(true, true, typeof(SecurityIdentifier)));
+
+      Assert.Equal([SidA], applied.Select(rule => rule.IdentityReference));
+   }
 }
