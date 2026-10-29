@@ -124,6 +124,7 @@ public class ModelAndHelperTests
    [InlineData("AA10", 26)]
    [InlineData("", 4)]
    [InlineData(null, 4)]
+   [InlineData("ZZZZZZ1", 4)]
    public void ColumnIndex_FromCellReference(string? reference, int expected) =>
       Assert.Equal(expected, XlsxSheetReader.ColumnIndex(reference, 4));
 

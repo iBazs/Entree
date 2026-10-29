@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Entree.Core.Helpers;
 
 namespace Entree.Core.Handler;
 
@@ -154,6 +155,7 @@ internal static partial class XlsxSheetReader
       {
          if (c is < 'A' or > 'Z') break;
          index = index * 26 + (c - 'A' + 1);
+         if (index > ReportHelper.MaxSheetColumns) return fallback;
       }
 
       return index == 0 ? fallback : index - 1;

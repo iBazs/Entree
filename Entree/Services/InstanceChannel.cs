@@ -44,7 +44,7 @@ public sealed class InstanceChannel : IDisposable
       {
          await pipe.ConnectAsync(ConnectTimeoutMs);
       }
-      catch (Exception ex) when (ex is TimeoutException or IOException)
+      catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
       {
          Log.Warning("The running Entrée did not answer: {Message}", ex.Message);
          return null;
