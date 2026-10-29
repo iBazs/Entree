@@ -11,7 +11,8 @@ public interface IUpdateService
 {
    bool          IsInstalled { get; }
    Task<string?> CheckAsync();
-   Task          DownloadAndRestartAsync(Action<int> progress);
+   Task          DownloadAsync(Action<int> progress);
+   void          InstallOnExit();
 }
 
 public sealed class UpdateService : IUpdateService
@@ -32,11 +33,14 @@ public sealed class UpdateService : IUpdateService
       return _available?.TargetFullRelease.Version.ToString();
    }
 
-   public async Task DownloadAndRestartAsync(Action<int> progress)
+   public async Task DownloadAsync(Action<int> progress)
    {
-      if (_available is null) return;
-      await _manager.DownloadUpdatesAsync(_available, progress);
-      _manager.ApplyUpdatesAndRestart(_available);
+      if (_available is not null) await _manager.DownloadUpdatesAsync(_available, progress);
+   }
+
+   public void InstallOnExit()
+   {
+      if (_available is not null) _manager.WaitExitThenApplyUpdates(_available, false, true);
    }
 
    private static bool IsPrerelease() =>

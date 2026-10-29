@@ -66,10 +66,29 @@ public class SettingsUpdateTests
    {
       var updates = new FakeUpdateService { IsInstalled = true, Available = "1.0.0" };
       var vm      = NewViewModel(updates);
+      var exits   = 0;
+      vm.Exit = () => exits++;
       await vm.CheckForUpdatesAsync(true);
 
       vm.UpdateCommand.Execute(null);
 
       Assert.Equal(1, updates.Installs);
+      Assert.Equal(1, exits);
+   }
+
+   [Fact]
+   public async Task Install_WhenASearchStartsDuringDownload_Waits()
+   {
+      var search  = new FakeSearchService();
+      var updates = new FakeUpdateService { IsInstalled = true, Available = "1.0.0", Downloading = () => search.IsSearchRunning = true };
+      var vm      = NewViewModel(updates, search);
+      var exits   = 0;
+      vm.Exit = () => exits++;
+      await vm.CheckForUpdatesAsync(true);
+
+      vm.UpdateCommand.Execute(null);
+
+      Assert.Equal(0, updates.Installs);
+      Assert.Equal(0, exits);
    }
 }

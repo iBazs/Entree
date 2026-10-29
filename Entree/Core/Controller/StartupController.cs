@@ -197,7 +197,16 @@ public class StartupController(
 
    private void ShowTray(string tooltip)
    {
-      _tray ??= new TrayIcon(() => OpenWindow(typeof(SearchViewModel)), () => _ = ExitFromTrayAsync());
+      if (_tray is null)
+      {
+         _tray = new TrayIcon(() => OpenWindow(typeof(SearchViewModel)), () => _ = ExitFromTrayAsync());
+         Application.Current.Exit += (_, _) =>
+         {
+            _tray.Dispose();
+            Log.CloseAndFlush();
+         };
+      }
+
       _tray.Show(tooltip);
    }
 

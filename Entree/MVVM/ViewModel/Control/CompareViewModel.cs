@@ -49,7 +49,7 @@ public class CompareViewModel : Core.BaseClass.ViewModel
       ExportResultsCommand = new RelayCommand(async o => { await ExportResultsAsync(o); },
                                               _ => ComparisonResults.Count > 0 && IsExportable);
       CancelCommand = new RelayCommand(async _ => await Cancel());
-      ClearCommand  = new RelayCommand(async _ => await Clear());
+      ClearCommand  = new RelayCommand(async _ => await Clear(), _ => !IsRunning);
       _cTokenSource = new CancellationTokenSource();
       // ReSharper restore AsyncVoidLambda
    }
@@ -69,6 +69,7 @@ public class CompareViewModel : Core.BaseClass.ViewModel
 
          _isRunning = value;
          OnPropertyChanged();
+         CommandManager.InvalidateRequerySuggested();
       }
    }
 

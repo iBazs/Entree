@@ -30,6 +30,7 @@ internal sealed class TrayIcon : IDisposable
    private readonly HwndSource  _window = new(new HwndSourceParameters("Entrée tray") { WindowStyle = 0 });
 
    private bool           _added;
+   private bool           _disposed;
    private NotifyIconData _data;
 
    public TrayIcon(Action open, Action exit)
@@ -72,6 +73,8 @@ internal sealed class TrayIcon : IDisposable
 
    public void Dispose()
    {
+      if (_disposed) return;
+      _disposed = true;
       if (_added) _ = Shell_NotifyIconW(NimDelete, ref _data);
       _window.RemoveHook(OnMessage);
       _window.Dispose();

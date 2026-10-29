@@ -87,20 +87,31 @@ public class TaskViewModel : Core.BaseClass.ViewModel
                                                      i));
    }
 
+   private bool _reloadPending;
+
    private async Task LoadJobs()
    {
-      if (!CanRefresh) return;
+      if (!CanRefresh)
+      {
+         _reloadPending = true;
+         return;
+      }
+
       CanRefresh = false;
-      Jobs.Clear();
-      try
+      do
       {
-         var jobViewModels = await _taskSchedulerService.LoadJobsAsync();
-         foreach (var jobViewModel in jobViewModels) Jobs.Add(jobViewModel);
-      }
-      catch (Exception ex)
-      {
-         Log.Error(ex, "Error loading jobs from service.");
-      }
+         _reloadPending = false;
+         try
+         {
+            var jobViewModels = await _taskSchedulerService.LoadJobsAsync();
+            Jobs.Clear();
+            foreach (var jobViewModel in jobViewModels) Jobs.Add(jobViewModel);
+         }
+         catch (Exception ex)
+         {
+            Log.Error(ex, "Error loading jobs from service.");
+         }
+      } while (_reloadPending);
 
       CanRefresh = true;
    }
@@ -144,6 +155,7 @@ public class TaskViewModel : Core.BaseClass.ViewModel
    private void EditJob(object obj)
    {
       if (obj is not JobViewModel jobViewModel) return;
+      ResetSchedule();
       IsNewJob      = false;
       _originalName = jobViewModel.Name;
 
@@ -288,7 +300,8 @@ public class TaskViewModel : Core.BaseClass.ViewModel
    {
       var name = EditingJob!.Name;
       if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return "A task name cannot contain \\ / : * ? \" < > |";
-      if (name != _originalName && Jobs.Any(job => job.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+      if (!name.Equals(_originalName, StringComparison.OrdinalIgnoreCase) &&
+          Jobs.Any(job => job.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
          return $"A task named {name} already exists.";
       return EditingJob.ScheduleType == ScheduleType.OneTime && ScheduleDate.Date.Add(ScheduleTime) <= DateTime.Now
                       ? "A one time task needs a start in the future."

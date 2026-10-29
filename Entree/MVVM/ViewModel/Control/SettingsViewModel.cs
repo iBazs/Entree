@@ -253,7 +253,17 @@ public class SettingsViewModel : Core.BaseClass.ViewModel
       IsUpdating = true;
       try
       {
-         await _updates.DownloadAndRestartAsync(percent => UpdateStatus = $"Downloading… {percent}%");
+         await _updates.DownloadAsync(percent => UpdateStatus = $"Downloading… {percent}%");
+         if (_searchService.IsSearchRunning)
+         {
+            UpdateStatus = $"Version {_availableVersion} is ready to install";
+            _notifications.Show(InfoBarSeverity.Warning, "Wait for the running searches to finish, then install.",
+                                "Searches are running");
+            return;
+         }
+
+         _updates.InstallOnExit();
+         Exit();
       }
       catch (Exception ex)
       {

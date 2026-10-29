@@ -39,11 +39,15 @@ internal sealed class FakeUpdateService : IUpdateService
 
    public Task<string?> CheckAsync() => Task.FromResult(Available);
 
-   public Task DownloadAndRestartAsync(Action<int> progress)
+   public Action? Downloading { get; init; }
+
+   public Task DownloadAsync(Action<int> progress)
    {
-      Installs++;
+      Downloading?.Invoke();
       return Task.CompletedTask;
    }
+
+   public void InstallOnExit() => Installs++;
 }
 
 internal sealed class FakeUserDataService : IUserDataService
