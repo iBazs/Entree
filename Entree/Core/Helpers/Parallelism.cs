@@ -7,6 +7,8 @@ internal static class Parallelism
 {
    private const int MaxDegree = 512;
 
+   public static int MaxThreads => Math.Min(Environment.ProcessorCount * 2, MaxDegree);
+
    public static int Degree(int threadLimit) =>
-      threadLimit is > 0 and <= MaxDegree ? threadLimit : Math.Min(Environment.ProcessorCount, MaxDegree);
+      threadLimit is > 0 and <= MaxDegree ? threadLimit : MaxThreads;
 }

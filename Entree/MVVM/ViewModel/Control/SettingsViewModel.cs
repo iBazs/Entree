@@ -58,7 +58,7 @@ public class SettingsViewModel : Core.BaseClass.ViewModel
       ShowThirdPartyLibrariesCommand = new RelayCommand(async _ => { await ShowThirdPartyLicenseAsync(); });
    }
 
-   public int    MaxParallelSize { get; } = Environment.ProcessorCount * 2;
+   public int    MaxParallelSize { get; } = Parallelism.MaxThreads;
    public string AppVersion      { get; } =
             FormatVersion(Assembly.GetExecutingAssembly()
                                   .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);

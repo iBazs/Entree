@@ -31,7 +31,7 @@ public class AppSettings : IAppSettings
 
    public string AppResultPath { get; set; } = PathHelper.DefaultResultsDirectory;
 
-   public              int           ThreadLimit { get; set; } = (int)(Environment.ProcessorCount * 1.5);
+   public              int           ThreadLimit { get; set; } = Parallelism.MaxThreads;
    [JsonIgnore] public LogEventLevel LogLevel    => LogEventLevel.Information;
    public              string        Theme       { get; set; } = AppTheme.System;
 }

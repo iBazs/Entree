@@ -74,8 +74,8 @@ public class ModelAndHelperTests
    [InlineData(-1)]
    [InlineData(-5)]
    [InlineData(10_000)]
-   public void Parallelism_InvalidLimitFallsBackToProcessorCount(int limit) =>
-      Assert.Equal(Math.Min(Environment.ProcessorCount, 512), Parallelism.Degree(limit));
+   public void Parallelism_InvalidLimitFallsBackToTheMaximum(int limit) =>
+      Assert.Equal(Math.Min(Environment.ProcessorCount * 2, 512), Parallelism.Degree(limit));
 
    [Theory]
    [InlineData(FileSystemRights.FullControl, AccessType.FullControl)]
