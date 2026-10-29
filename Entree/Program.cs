@@ -14,9 +14,9 @@ public static class Program
       // Handles Velopack's install, update and uninstall hooks, which exit before the app starts.
       // Uninstall keeps the data folder and scheduled tasks, so a reinstall picks them up again.
       VelopackApp.Build()
-                 .OnAfterInstallFastCallback(_ => DataMigration.FromSetupBackup())
+                 .OnAfterInstallFastCallback(_ => DataMigration.Safely(DataMigration.FromSetupBackup))
                  .Run();
-      DataMigration.FromPortable();
+      DataMigration.Safely(DataMigration.FromPortable);
 
       var app = new App();
       app.InitializeComponent();

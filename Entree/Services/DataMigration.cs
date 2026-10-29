@@ -14,6 +14,8 @@ namespace Entree.Services;
 internal static partial class DataMigration
 {
    private const  string   SettingsFile = "appsettings.json";
+   private const  string   MutexName    = @"Local\EntreeDataMigration";
+   private static readonly TimeSpan GateTimeout = TimeSpan.FromSeconds(30);
    private static readonly string[] Items = [SettingsFile, "cache", "Log"];
 
    public static string LegacyDirectory { get; } =
@@ -45,22 +47,102 @@ internal static partial class DataMigration
       if (backup is not null) Move(backup.FullName, PathHelper.DataDirectory);
    }
 
+   public static void Safely(Action migrate)
+   {
+      try
+      {
+         migrate();
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+      {
+         Console.Error.WriteLine($"Moving the Entrée data stopped and is retried on the next start: {ex.Message}");
+      }
+   }
+
    internal static bool IsVelopackRoot(string directory) =>
             File.Exists(Path.Combine(directory, "Update.exe")) || Directory.Exists(Path.Combine(directory, "current"));
 
    internal static void Move(string from, string to)
    {
-      if (!File.Exists(Path.Combine(from, SettingsFile)) || File.Exists(Path.Combine(to, SettingsFile))) return;
-      Directory.CreateDirectory(to);
-      foreach (var item in Items)
+      using var gate = new Mutex(false, MutexName);
+      bool      owned;
+      try
       {
-         var source = Path.Combine(from, item);
-         var target = Path.Combine(to, item);
-         if (Directory.Exists(source) && !Directory.Exists(target)) Directory.Move(source, target);
-         else if (File.Exists(source) && !File.Exists(target)) File.Move(source, target);
+         owned = gate.WaitOne(GateTimeout);
+      }
+      catch (AbandonedMutexException)
+      {
+         owned = true;
       }
 
-      PointLogsAt(Path.Combine(to, SettingsFile), Path.Combine(to, "Log"));
+      try
+      {
+         if (!Directory.Exists(from)) return;
+         Directory.CreateDirectory(to);
+         foreach (var item in Items.Reverse()) MoveItem(Path.Combine(from, item), Path.Combine(to, item));
+         if (File.Exists(Path.Combine(to, SettingsFile)))
+            PointLogsAt(Path.Combine(to, SettingsFile), Path.Combine(to, "Log"));
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+      {
+         Console.Error.WriteLine($"Moving the Entrée data from {from} to {to} stopped and is retried on the next start: {ex.Message}");
+      }
+      finally
+      {
+         if (owned) gate.ReleaseMutex();
+      }
+   }
+
+   private static void MoveItem(string source, string target)
+   {
+      if (File.Exists(source))
+      {
+         if (!File.Exists(target)) MoveFile(source, target);
+         return;
+      }
+
+      if (!Directory.Exists(source)) return;
+      if (!Directory.Exists(target) || IsCoveredBy(target, source))
+      {
+         if (Directory.Exists(target)) Directory.Delete(target, true);
+         MoveDirectory(source, target);
+         return;
+      }
+
+      foreach (var file in Directory.EnumerateFiles(source))
+      {
+         var moved = Path.Combine(target, Path.GetFileName(file));
+         if (!File.Exists(moved)) MoveFile(file, moved);
+      }
+   }
+
+   internal static bool IsCoveredBy(string target, string source)
+   {
+      var names = Directory.EnumerateFiles(target).Select(Path.GetFileName).ToList();
+      return names.Count < Directory.EnumerateFiles(source).Count() &&
+             names.All(name => File.Exists(Path.Combine(source, name!)));
+   }
+
+   private static void MoveFile(string source, string target)
+   {
+      File.Copy(source, target, false);
+      File.Delete(source);
+   }
+
+   private static void MoveDirectory(string source, string target)
+   {
+      var staging = $"{target}.{Guid.NewGuid():N}.partial";
+      CopyDirectory(source, staging);
+      Directory.Move(staging, target);
+      Directory.Delete(source, true);
+   }
+
+   private static void CopyDirectory(string source, string target)
+   {
+      Directory.CreateDirectory(target);
+      foreach (var file in Directory.EnumerateFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+      foreach (var folder in Directory.EnumerateDirectories(source))
+         CopyDirectory(folder, Path.Combine(target, Path.GetFileName(folder)));
    }
 
    // The old default log folder was saved as an absolute path inside the old folder

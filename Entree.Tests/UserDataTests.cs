@@ -69,7 +69,50 @@ public sealed class UserDataTests : IDisposable
       DataMigration.Move(from, to);
 
       Assert.Equal("{}", File.ReadAllText(Path.Combine(to, "appsettings.json")));
-      Assert.True(File.Exists(Path.Combine(from, "cache", "k")));
+      Assert.Equal("key", File.ReadAllText(Path.Combine(to, "cache", "k")));
+   }
+
+   [Fact]
+   public void Move_ResumesWithTheSavedDomainsOverAFreshKey()
+   {
+      var from = OldFolder(@"D:\Logs");
+      File.WriteAllText(Path.Combine(from, "cache", "d"), "domains");
+      var to = Path.Combine(_root, "new");
+      Directory.CreateDirectory(Path.Combine(to, "cache"));
+      File.WriteAllText(Path.Combine(to, "cache", "k"), "fresh");
+
+      DataMigration.Move(from, to);
+
+      Assert.Equal("key", File.ReadAllText(Path.Combine(to, "cache", "k")));
+      Assert.Equal("domains", File.ReadAllText(Path.Combine(to, "cache", "d")));
+      Assert.False(Directory.Exists(Path.Combine(from, "cache")));
+   }
+
+   [Fact]
+   public void Move_KeepsANewerCompleteFolder()
+   {
+      var from = OldFolder(@"D:\Logs");
+      File.WriteAllText(Path.Combine(from, "cache", "d"), "old domains");
+      var to = Path.Combine(_root, "new");
+      Directory.CreateDirectory(Path.Combine(to, "cache"));
+      File.WriteAllText(Path.Combine(to, "cache", "k"), "new key");
+      File.WriteAllText(Path.Combine(to, "cache", "d"), "new domains");
+
+      DataMigration.Move(from, to);
+
+      Assert.Equal("new domains", File.ReadAllText(Path.Combine(to, "cache", "d")));
+   }
+
+   [Fact]
+   public void Move_WithAMalformedSettingsFile_DoesNotThrow()
+   {
+      var from = OldFolder(@"D:\Logs");
+      File.WriteAllText(Path.Combine(from, "appsettings.json"), "{ broken");
+      var to = Path.Combine(_root, "new");
+
+      DataMigration.Move(from, to);
+
+      Assert.True(File.Exists(Path.Combine(to, "cache", "k")));
    }
 
    [Fact]
