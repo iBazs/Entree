@@ -44,46 +44,39 @@ public class TaskSchedulerService : ITaskSchedulerService
 {
    private static readonly string TaskFolderName = JobViewModel.TaskFolderName;
 
-   public async Task<List<JobViewModel>> LoadJobsAsync()
-   {
-      var jobs = new List<JobViewModel>();
+   public async Task<List<JobViewModel>> LoadJobsAsync() =>
+            await LoadOutcomeAsync() is Outcome<List<JobViewModel>>.Done done ? done.Value : [];
 
+   private static async Task<Outcome<List<JobViewModel>>> LoadOutcomeAsync()
+   {
       try
       {
-         await Task.Run(() =>
+         return await Task.Run(() =>
          {
             using var ts = new TaskService();
             var exeFileName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName ??
                                                Application.ResourceAssembly.Location);
-
-            try
+            var searchTasks = GetTaskFolder(ts).AllTasks.Where(x =>
             {
-               var searchTasks = GetTaskFolder(ts).AllTasks.Where(x =>
-               {
-                  if (!string.IsNullOrEmpty(x.Definition.RegistrationInfo.Author) &&
-                      x.Definition.RegistrationInfo.Author.Contains(TaskFolderName)) return true;
-                  return x.Definition.Actions.Count != 0 &&
-                         x.Definition.Actions.OfType<ExecAction>()
-                          .Any(a => a.Path.Contains(exeFileName));
-               });
+               if (!string.IsNullOrEmpty(x.Definition.RegistrationInfo.Author) &&
+                   x.Definition.RegistrationInfo.Author.Contains(TaskFolderName)) return true;
+               return x.Definition.Actions.Count != 0 &&
+                      x.Definition.Actions.OfType<ExecAction>()
+                       .Any(a => a.Path.Contains(exeFileName));
+            });
 
-               jobs.AddRange(from task in searchTasks
-                             where !IsTaskSchedulerV1() ||
-                                   (task.Definition.RegistrationInfo.Description?.Contains(TaskFolderName) ?? false)
-                             select CreateJobViewModelFromTask(task));
-            }
-            catch (Exception ex)
-            {
-               Log.Warning(ex, "Error loading individual tasks");
-            }
+            return (Outcome<List<JobViewModel>>)new Outcome<List<JobViewModel>>.Done(
+                     (from task in searchTasks
+                      where !IsTaskSchedulerV1() ||
+                            (task.Definition.RegistrationInfo.Description?.Contains(TaskFolderName) ?? false)
+                      select CreateJobViewModelFromTask(task)).ToList());
          });
       }
       catch (Exception ex)
       {
          Log.Error(ex, "Error loading tasks: Could not get loaded the current tasks.");
+         return new Outcome<List<JobViewModel>>.Failed(ex.Message);
       }
-
-      return jobs;
    }
 
    public async Task<bool> SaveJobAsync(JobViewModel job, TaskScheduleSettings settings)
@@ -147,10 +140,11 @@ public class TaskSchedulerService : ITaskSchedulerService
 
    public async Task<bool> DeleteAllJobsAsync()
    {
+      if (await LoadOutcomeAsync() is not Outcome<List<JobViewModel>>.Done found) return false;
       var deleted = true;
-      foreach (var job in await LoadJobsAsync())
+      foreach (var job in found.Value)
          deleted &= await DeleteJobAsync(job.Name);
-      if (!deleted) return false;
+      if (!deleted || await LoadOutcomeAsync() is not Outcome<List<JobViewModel>>.Done { Value.Count: 0 }) return false;
 
       await Task.Run(() =>
       {

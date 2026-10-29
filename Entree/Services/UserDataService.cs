@@ -31,11 +31,12 @@ public sealed class UserDataService(ITaskSchedulerService tasks, string dataDire
       try
       {
          if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, true);
-         return true;
       }
       catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
       {
-         return false;
+         Console.Error.WriteLine($"Some files in {dataDirectory} could not be deleted: {ex.Message}");
       }
+
+      return true;
    }
 }
